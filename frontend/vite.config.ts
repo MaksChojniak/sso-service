@@ -10,6 +10,12 @@ export default defineConfig({
     vue(),
     vueDevTools(),
   ],
+  server: {
+    watch: {
+      usePolling: true,
+      interval: 1000,
+    },
+  },
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
