@@ -1,75 +1,128 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 
+const step = ref(1)
+const email = ref('')
+const verificationCode = ref('')
 const password = ref('')
 const confirmPassword = ref('')
-const passwordError = ref('')
+const formError = ref('')
 
-function validatePasswords() {
-  passwordError.value =
-    password.value === confirmPassword.value ? '' : 'Your passwords do not match.'
+const stepTitle = computed(() => {
+  if (step.value === 1) return 'Enter your email'
+  if (step.value === 2) return 'Verify your email'
+  return 'Create a new password'
+})
+
+function handleSubmit() {
+  formError.value = ''
+
+  if (step.value === 1) {
+    step.value = 2
+    return
+  }
+
+  if (step.value === 2) {
+    if (!/^[0-9]{8}$/.test(verificationCode.value)) {
+      formError.value = 'Enter the 8-digit code from your email.'
+      return
+    }
+
+    step.value = 3
+    return
+  }
+
+  if (password.value !== confirmPassword.value) {
+    formError.value = 'Your passwords do not match.'
+  }
+}
+
+function editEmail() {
+  step.value = 1
+  verificationCode.value = ''
+  formError.value = ''
 }
 </script>
 
 <template>
-  <form class="auth-form" @submit.prevent="validatePasswords">
-    <label class="field">
-      <span>Email address</span>
-      <input
-        type="email"
-        name="email"
-        placeholder="you@example.com"
-        autocomplete="email"
-        required
-      />
-    </label>
+  <form class="auth-form" @submit.prevent="handleSubmit">
+    <p class="step-label">STEP {{ step }} OF 3 <span aria-hidden="true">·</span> {{ stepTitle }}</p>
 
-    <label class="field">
-      <span>8-digit verification code</span>
-      <input
-        type="text"
-        name="verificationCode"
-        placeholder="00000000"
-        inputmode="numeric"
-        autocomplete="one-time-code"
-        pattern="[0-9]{8}"
-        maxlength="8"
-        minlength="8"
-        aria-describedby="code-hint"
-        required
-      />
-      <span id="code-hint" class="field-hint">Enter the 8-digit code sent to your email.</span>
-    </label>
+    <template v-if="step === 1">
+      <label class="field">
+        <span>Email address</span>
+        <input
+          v-model="email"
+          type="email"
+          name="email"
+          placeholder="you@example.com"
+          autocomplete="email"
+          required
+        />
+      </label>
+      <button class="primary-button" type="submit">Continue</button>
+    </template>
 
-    <label class="field">
-      <span>New password</span>
-      <input
-        v-model="password"
-        type="password"
-        name="password"
-        placeholder="At least 8 characters"
-        autocomplete="new-password"
-        minlength="8"
-        required
-      />
-    </label>
+    <template v-else-if="step === 2">
+      <p class="step-description">
+        Enter the 8-digit verification code sent to <strong>{{ email }}</strong>.
+      </p>
+      <label class="field">
+        <span>Verification code</span>
+        <input
+          v-model="verificationCode"
+          type="text"
+          name="verificationCode"
+          placeholder="00000000"
+          inputmode="numeric"
+          autocomplete="one-time-code"
+          pattern="[0-9]{8}"
+          maxlength="8"
+          minlength="8"
+          aria-describedby="code-hint"
+          required
+        />
+        <span id="code-hint" class="field-hint">The code must contain 8 digits.</span>
+      </label>
+      <p v-if="formError" class="form-error" role="alert">{{ formError }}</p>
+      <div class="actions">
+        <button class="secondary-button" type="button" @click="editEmail">Back</button>
+        <button class="primary-button" type="submit">Verify code</button>
+      </div>
+    </template>
 
-    <label class="field">
-      <span>Confirm new password</span>
-      <input
-        v-model="confirmPassword"
-        type="password"
-        name="confirmPassword"
-        placeholder="Enter your password again"
-        autocomplete="new-password"
-        minlength="8"
-        required
-        @input="passwordError = ''"
-      />
-    </label>
-
-    <p v-if="passwordError" class="form-error" role="alert">{{ passwordError }}</p>
-    <button class="primary-button" type="submit">Reset password</button>
+    <template v-else>
+      <p class="step-description">Choose a new password for your account.</p>
+      <label class="field">
+        <span>New password</span>
+        <input
+          v-model="password"
+          type="password"
+          name="password"
+          placeholder="At least 8 characters"
+          autocomplete="new-password"
+          minlength="8"
+          required
+        />
+      </label>
+      <label class="field">
+        <span>Confirm new password</span>
+        <input
+          v-model="confirmPassword"
+          type="password"
+          name="confirmPassword"
+          placeholder="Enter your password again"
+          autocomplete="new-password"
+          minlength="8"
+          required
+        />
+      </label>
+      <p v-if="formError" class="form-error" role="alert">{{ formError }}</p>
+      <div class="actions">
+        <button class="secondary-button" type="button" @click="step = 2">Back</button>
+        <button class="primary-button" type="submit">Reset password</button>
+      </div>
+    </template>
   </form>
 </template>
 
@@ -77,6 +130,32 @@ function validatePasswords() {
 .auth-form {
   display: grid;
   gap: 13px;
+}
+
+.step-label {
+  margin: 0 0 3px;
+  color: #687386;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.7px;
+  text-transform: uppercase;
+}
+
+.step-label span {
+  padding: 0 3px;
+}
+
+.step-description {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.step-description strong {
+  color: var(--color-ink);
+  font-weight: 600;
+  overflow-wrap: anywhere;
 }
 
 .field {
@@ -122,28 +201,46 @@ function validatePasswords() {
   font-size: 11px;
 }
 
-.primary-button {
-  width: 100%;
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 2px;
+}
+
+.primary-button,
+.secondary-button {
+  min-width: 112px;
   height: 40px;
-  margin-top: 1px;
+  padding: 0 18px;
   border: 0;
   border-radius: 0;
-  background: var(--color-primary);
-  box-shadow: none;
-  color: #fff;
   cursor: pointer;
   font-size: 13px;
   font-weight: 600;
-  transition:
-    transform 150ms ease,
-    background 150ms ease;
+}
+
+.primary-button {
+  background: var(--color-primary);
+  color: #fff;
+  transition: background 150ms ease;
 }
 
 .primary-button:hover {
   background: var(--color-primary-dark);
 }
 
-.primary-button:focus-visible {
+.secondary-button {
+  background: transparent;
+  color: var(--color-ink);
+}
+
+.secondary-button:hover {
+  background: #f3f3f3;
+}
+
+.primary-button:focus-visible,
+.secondary-button:focus-visible {
   outline: 3px solid rgb(90 98 232 / 35%);
   outline-offset: 3px;
 }

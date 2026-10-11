@@ -4,7 +4,10 @@ import ResetPasswordForm from '@/features/reset-password/ui/ResetPasswordForm.vu
 </script>
 
 <template>
-  <AuthLayout title="Reset your password" description="Use the code sent to your email to set a new password.">
+  <AuthLayout
+    title="Reset your password"
+    description="Follow the steps below to reset your account password."
+  >
     <ResetPasswordForm />
     <template #footer>
       <RouterLink class="card-link" to="/login">Back to sign in</RouterLink>

@@ -23,13 +23,48 @@ describe('authentication forms', () => {
     expect(wrapper.find('input[name="confirmPassword"]').exists()).toBe(true)
   })
 
-  it('requires an email, an 8-digit code, and a new password to reset access', () => {
+  it('starts password reset by asking for an email address', () => {
     const wrapper = mount(ResetPasswordForm)
-    const codeInput = wrapper.find('input[name="verificationCode"]')
 
     expect(wrapper.find('input[type="email"]').exists()).toBe(true)
+    expect(wrapper.find('input[name="verificationCode"]').exists()).toBe(false)
+    expect(wrapper.find('input[name="password"]').exists()).toBe(false)
+    expect(wrapper.find('button[type="submit"]').text()).toBe('Continue')
+  })
+
+  it('asks for an 8-digit code before allowing the new password step', async () => {
+    const wrapper = mount(ResetPasswordForm)
+
+    await wrapper.find('input[type="email"]').setValue('user@example.com')
+    await wrapper.find('form').trigger('submit')
+    expect(wrapper.find('input[name="verificationCode"]').exists()).toBe(true)
+    expect(wrapper.find('input[name="password"]').exists()).toBe(false)
+
+    const codeInput = wrapper.find('input[name="verificationCode"]')
     expect(codeInput.attributes('pattern')).toBe('[0-9]{8}')
     expect(codeInput.attributes('maxlength')).toBe('8')
+
+    await codeInput.setValue('1234567')
+    await wrapper.find('form').trigger('submit')
+    expect(wrapper.find('input[name="password"]').exists()).toBe(false)
+
+    await codeInput.setValue('12345678')
+    await wrapper.find('form').trigger('submit')
     expect(wrapper.find('input[name="password"]').exists()).toBe(true)
+    expect(wrapper.find('input[name="confirmPassword"]').exists()).toBe(true)
+  })
+
+  it('shows a validation message when the new passwords do not match', async () => {
+    const wrapper = mount(ResetPasswordForm)
+
+    await wrapper.find('input[type="email"]').setValue('user@example.com')
+    await wrapper.find('form').trigger('submit')
+    await wrapper.find('input[name="verificationCode"]').setValue('12345678')
+    await wrapper.find('form').trigger('submit')
+    await wrapper.find('input[name="password"]').setValue('password1')
+    await wrapper.find('input[name="confirmPassword"]').setValue('password2')
+    await wrapper.find('form').trigger('submit')
+
+    expect(wrapper.find('[role="alert"]').text()).toBe('Your passwords do not match.')
   })
 })
