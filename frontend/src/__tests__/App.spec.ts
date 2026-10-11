@@ -43,6 +43,10 @@ describe('authentication forms', () => {
     const codeInput = wrapper.find('input[name="verificationCode"]')
     expect(codeInput.attributes('pattern')).toBe('[0-9]{8}')
     expect(codeInput.attributes('maxlength')).toBe('8')
+    expect(wrapper.findAll('.code-cell')).toHaveLength(8)
+
+    await codeInput.setValue('12a345678')
+    expect((codeInput.element as HTMLInputElement).value).toBe('12345678')
 
     await codeInput.setValue('1234567')
     await wrapper.find('form').trigger('submit')

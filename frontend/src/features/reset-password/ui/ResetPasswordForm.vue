@@ -7,6 +7,8 @@ const verificationCode = ref('')
 const password = ref('')
 const confirmPassword = ref('')
 const formError = ref('')
+const codeInputFocused = ref(false)
+const codeDigits = computed(() => Array.from(verificationCode.value.padEnd(8, ' ')))
 
 const stepTitle = computed(() => {
   if (step.value === 1) return 'Enter your email'
@@ -42,6 +44,15 @@ function editEmail() {
   verificationCode.value = ''
   formError.value = ''
 }
+
+function sanitizeVerificationCode(event: Event) {
+  const input = event.target
+
+  if (!(input instanceof HTMLInputElement)) return
+
+  verificationCode.value = input.value.replace(/\D/g, '').slice(0, 8)
+  input.value = verificationCode.value
+}
 </script>
 
 <template>
@@ -69,19 +80,35 @@ function editEmail() {
       </p>
       <label class="field">
         <span>Verification code</span>
-        <input
-          v-model="verificationCode"
-          type="text"
-          name="verificationCode"
-          placeholder="00000000"
-          inputmode="numeric"
-          autocomplete="one-time-code"
-          pattern="[0-9]{8}"
-          maxlength="8"
-          minlength="8"
-          aria-describedby="code-hint"
-          required
-        />
+        <span class="code-input" :class="{ 'is-focused': codeInputFocused }">
+          <span
+            v-for="(digit, index) in codeDigits"
+            :key="index"
+            class="code-cell"
+            :class="{
+              'is-filled': digit !== ' ',
+              'is-active': codeInputFocused && index === Math.min(verificationCode.length, 7),
+            }"
+            aria-hidden="true"
+          >{{ digit === ' ' ? '' : digit }}</span>
+          <input
+            v-model="verificationCode"
+            class="code-native-input"
+            type="text"
+            name="verificationCode"
+            inputmode="numeric"
+            autocomplete="one-time-code"
+            pattern="[0-9]{8}"
+            maxlength="8"
+            minlength="8"
+            aria-label="8-digit verification code"
+            aria-describedby="code-hint"
+            required
+            @input="sanitizeVerificationCode"
+            @focus="codeInputFocused = true"
+            @blur="codeInputFocused = false"
+          />
+        </span>
         <span id="code-hint" class="field-hint">The code must contain 8 digits.</span>
       </label>
       <p v-if="formError" class="form-error" role="alert">{{ formError }}</p>
@@ -189,6 +216,53 @@ function editEmail() {
   box-shadow: 0 1px 0 var(--color-primary);
 }
 
+.code-input {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.code-cell {
+  display: grid;
+  height: 46px;
+  place-items: center;
+  border: 1px solid #d8dce5;
+  border-radius: 7px;
+  background: #fff;
+  color: var(--color-ink);
+  font-size: 18px;
+  font-weight: 600;
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.code-input.is-focused .code-cell.is-active {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgb(90 98 232 / 14%);
+}
+
+.code-cell.is-filled {
+  border-color: #aeb5c3;
+}
+
+.code-native-input {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  cursor: text;
+}
+
+.code-native-input:focus {
+  outline: none;
+}
+
 .field-hint {
   color: var(--color-muted);
   font-size: 10px;
@@ -243,5 +317,15 @@ function editEmail() {
 .secondary-button:focus-visible {
   outline: 3px solid rgb(90 98 232 / 35%);
   outline-offset: 3px;
+}
+
+@media (max-width: 380px) {
+  .code-input {
+    gap: 4px;
+  }
+
+  .code-cell {
+    height: 42px;
+  }
 }
 </style>
