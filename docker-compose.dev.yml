@@ -2,7 +2,7 @@ services:
   db:
     env_file: ./docker/postgres/.env
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
 
   backend:
     build:
@@ -12,8 +12,11 @@ services:
       - ./docker/backend/.env
     volumes:
       - ./backend:/app
-    ports:
-      - "8000:8000"
+    networks:
+      default: {}
+      proxy:
+        aliases:
+          - sso-backend
 
   frontend:
     build:
@@ -22,5 +25,14 @@ services:
     volumes:
       - ./frontend:/app
       - /app/node_modules
-    ports:
-      - "5173:5173"
+    networks:
+      default: {}
+      proxy:
+        aliases:
+          - sso-frontend
+
+networks:
+  default: {}
+  proxy:
+    name: proxy
+    external: true
