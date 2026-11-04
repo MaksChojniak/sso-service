@@ -110,6 +110,25 @@ function formatPhoneNumber(event: Event) {
   input.setSelectionRange(caretPosition, caretPosition)
 }
 
+function formatPostalCode(event: Event) {
+  const input = event.target
+
+  if (!(input instanceof HTMLInputElement)) return
+
+  const digitsBeforeCaret = input.value
+    .slice(0, input.selectionStart ?? input.value.length)
+    .replace(/\D/g, '').length
+  const digits = input.value.replace(/\D/g, '').slice(0, 5)
+  const formatted = digits.length > 2 ? `${digits.slice(0, 2)}-${digits.slice(2)}` : digits
+
+  postalCode.value = formatted
+  input.value = formatted
+
+  const caretPosition =
+    digitsBeforeCaret > 2 ? digitsBeforeCaret + 1 : digitsBeforeCaret
+  input.setSelectionRange(caretPosition, caretPosition)
+}
+
 function handleProfilePictureChange(event: Event) {
   const input = event.target
 
@@ -300,22 +319,10 @@ onBeforeUnmount(() => {
       <p class="step-description">Add your home address and contact details.</p>
       <section class="profile-section" aria-labelledby="address-title">
         <h2 id="address-title" class="section-title">Home address</h2>
-        <div class="field-row">
-          <label class="field">
-            <span>City</span>
-            <input v-model="city" type="text" name="city" autocomplete="address-level2" required />
-          </label>
-          <label class="field">
-            <span>Postal code</span>
-            <input
-              v-model="postalCode"
-              type="text"
-              name="postalCode"
-              autocomplete="postal-code"
-              required
-            />
-          </label>
-        </div>
+        <label class="field">
+          <span>City</span>
+          <input v-model="city" type="text" name="city" autocomplete="address-level2" required />
+        </label>
         <div class="field-row">
           <label class="field">
             <span>Street</span>
@@ -338,6 +345,21 @@ onBeforeUnmount(() => {
             />
           </label>
         </div>
+        <label class="field">
+          <span>Postal code</span>
+          <input
+            :value="postalCode"
+            type="text"
+            name="postalCode"
+            autocomplete="postal-code"
+            inputmode="numeric"
+            maxlength="6"
+            pattern="[0-9]{2}-[0-9]{3}"
+            placeholder="00-000"
+            required
+            @input="formatPostalCode"
+          />
+        </label>
       </section>
 
       <section class="profile-section" aria-labelledby="contact-information-title">

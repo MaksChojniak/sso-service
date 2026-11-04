@@ -81,6 +81,12 @@ describe('authentication forms', () => {
     expect(wrapper.find('input[name="street"]').exists()).toBe(true)
     expect(wrapper.find('input[name="houseNumber"]').exists()).toBe(true)
     expect(wrapper.find('input[name="postalCode"]').exists()).toBe(true)
+    const postalCodeInput = wrapper.find('input[name="postalCode"]')
+    await postalCodeInput.setValue('12345')
+    expect((postalCodeInput.element as HTMLInputElement).value).toBe('12-345')
+    expect(postalCodeInput.attributes('pattern')).toBe('[0-9]{2}-[0-9]{3}')
+    await postalCodeInput.setValue('12-3a45')
+    expect((postalCodeInput.element as HTMLInputElement).value).toBe('12-345')
     expect(wrapper.find('input[name="profileEmail"]').element.hasAttribute('readonly')).toBe(true)
     expect((wrapper.find('input[name="profileEmail"]').element as HTMLInputElement).value).toBe(
       'user@example.com',
