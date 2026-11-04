@@ -37,7 +37,7 @@ describe('authentication forms', () => {
     expect(wrapper.find('input[name="verificationCode"]').exists()).toBe(false)
   })
 
-  it('verifies an 8-digit code before asking for profile details', async () => {
+  it('verifies an 8-digit code before showing personal profile details', async () => {
     const wrapper = mount(SignUpForm)
 
     await wrapper.find('input[type="email"]').setValue('user@example.com')
@@ -55,11 +55,33 @@ describe('authentication forms', () => {
 
     expect(wrapper.find('input[name="firstName"]').exists()).toBe(true)
     expect(wrapper.find('input[name="lastName"]').exists()).toBe(true)
-    expect(wrapper.find('input[name="countryOfOrigin"]').exists()).toBe(true)
-    expect(wrapper.find('input[name="countryCallingCode"]').exists()).toBe(true)
-    expect(wrapper.find('input[name="phoneNumber"]').exists()).toBe(true)
+    expect(wrapper.find('select[name="countryOfOrigin"]').exists()).toBe(true)
     expect(wrapper.find('input[name="profilePicture"]').attributes('accept')).toBe('image/*')
+    expect(wrapper.find('.avatar').text()).toBe('U')
+    expect(wrapper.find('select[name="countryOfOrigin"] option').text()).toContain(
+      'Select a country',
+    )
+    expect(wrapper.find('select[name="countryOfOrigin"] option[value="PL"]').text()).toContain(
+      'Poland',
+    )
     expect(wrapper.find('input[name="dateOfBirth"]').attributes('type')).toBe('date')
+    expect(wrapper.find('button[type="submit"]').text()).toBe('Continue')
+
+    await wrapper.find('form').trigger('submit')
+    expect(wrapper.find('input[name="city"]').exists()).toBe(true)
+    expect(wrapper.find('input[name="street"]').exists()).toBe(true)
+    expect(wrapper.find('input[name="houseNumber"]').exists()).toBe(true)
+    expect(wrapper.find('input[name="postalCode"]').exists()).toBe(true)
+    expect(wrapper.find('input[name="profileEmail"]').element.hasAttribute('readonly')).toBe(true)
+    expect((wrapper.find('input[name="profileEmail"]').element as HTMLInputElement).value).toBe(
+      'user@example.com',
+    )
+    expect(wrapper.find('input[name="phoneNumber"]').exists()).toBe(true)
+    expect(wrapper.find('select[name="countryCallingCode"]').exists()).toBe(true)
+    expect(wrapper.find('select[name="countryCallingCode"] option').text()).toBe('Code')
+    expect(wrapper.find('select[name="countryCallingCode"] option[value="PL"]').text()).toContain(
+      '+48',
+    )
   })
 
   it('starts password reset by asking for an email address', () => {

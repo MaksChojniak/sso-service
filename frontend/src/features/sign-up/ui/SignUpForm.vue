@@ -1,6 +1,70 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onBeforeUnmount, ref } from 'vue'
 
+const countries = [
+  { code: 'AR', name: 'Argentina', callingCode: '+54' },
+  { code: 'AU', name: 'Australia', callingCode: '+61' },
+  { code: 'AT', name: 'Austria', callingCode: '+43' },
+  { code: 'BE', name: 'Belgium', callingCode: '+32' },
+  { code: 'BR', name: 'Brazil', callingCode: '+55' },
+  { code: 'BG', name: 'Bulgaria', callingCode: '+359' },
+  { code: 'CA', name: 'Canada', callingCode: '+1' },
+  { code: 'CL', name: 'Chile', callingCode: '+56' },
+  { code: 'CN', name: 'China', callingCode: '+86' },
+  { code: 'CO', name: 'Colombia', callingCode: '+57' },
+  { code: 'HR', name: 'Croatia', callingCode: '+385' },
+  { code: 'CY', name: 'Cyprus', callingCode: '+357' },
+  { code: 'CZ', name: 'Czechia', callingCode: '+420' },
+  { code: 'DK', name: 'Denmark', callingCode: '+45' },
+  { code: 'EG', name: 'Egypt', callingCode: '+20' },
+  { code: 'EE', name: 'Estonia', callingCode: '+372' },
+  { code: 'FI', name: 'Finland', callingCode: '+358' },
+  { code: 'FR', name: 'France', callingCode: '+33' },
+  { code: 'DE', name: 'Germany', callingCode: '+49' },
+  { code: 'GR', name: 'Greece', callingCode: '+30' },
+  { code: 'HK', name: 'Hong Kong', callingCode: '+852' },
+  { code: 'HU', name: 'Hungary', callingCode: '+36' },
+  { code: 'IS', name: 'Iceland', callingCode: '+354' },
+  { code: 'IN', name: 'India', callingCode: '+91' },
+  { code: 'ID', name: 'Indonesia', callingCode: '+62' },
+  { code: 'IE', name: 'Ireland', callingCode: '+353' },
+  { code: 'IL', name: 'Israel', callingCode: '+972' },
+  { code: 'IT', name: 'Italy', callingCode: '+39' },
+  { code: 'JP', name: 'Japan', callingCode: '+81' },
+  { code: 'KE', name: 'Kenya', callingCode: '+254' },
+  { code: 'LV', name: 'Latvia', callingCode: '+371' },
+  { code: 'LT', name: 'Lithuania', callingCode: '+370' },
+  { code: 'LU', name: 'Luxembourg', callingCode: '+352' },
+  { code: 'MY', name: 'Malaysia', callingCode: '+60' },
+  { code: 'MX', name: 'Mexico', callingCode: '+52' },
+  { code: 'MA', name: 'Morocco', callingCode: '+212' },
+  { code: 'NL', name: 'Netherlands', callingCode: '+31' },
+  { code: 'NZ', name: 'New Zealand', callingCode: '+64' },
+  { code: 'NG', name: 'Nigeria', callingCode: '+234' },
+  { code: 'NO', name: 'Norway', callingCode: '+47' },
+  { code: 'PK', name: 'Pakistan', callingCode: '+92' },
+  { code: 'PH', name: 'Philippines', callingCode: '+63' },
+  { code: 'PL', name: 'Poland', callingCode: '+48' },
+  { code: 'PT', name: 'Portugal', callingCode: '+351' },
+  { code: 'RO', name: 'Romania', callingCode: '+40' },
+  { code: 'SA', name: 'Saudi Arabia', callingCode: '+966' },
+  { code: 'SG', name: 'Singapore', callingCode: '+65' },
+  { code: 'SK', name: 'Slovakia', callingCode: '+421' },
+  { code: 'SI', name: 'Slovenia', callingCode: '+386' },
+  { code: 'ZA', name: 'South Africa', callingCode: '+27' },
+  { code: 'KR', name: 'South Korea', callingCode: '+82' },
+  { code: 'ES', name: 'Spain', callingCode: '+34' },
+  { code: 'SE', name: 'Sweden', callingCode: '+46' },
+  { code: 'CH', name: 'Switzerland', callingCode: '+41' },
+  { code: 'TW', name: 'Taiwan', callingCode: '+886' },
+  { code: 'TH', name: 'Thailand', callingCode: '+66' },
+  { code: 'TR', name: 'Türkiye', callingCode: '+90' },
+  { code: 'UA', name: 'Ukraine', callingCode: '+380' },
+  { code: 'AE', name: 'United Arab Emirates', callingCode: '+971' },
+  { code: 'GB', name: 'United Kingdom', callingCode: '+44' },
+  { code: 'US', name: 'United States', callingCode: '+1' },
+  { code: 'VN', name: 'Vietnam', callingCode: '+84' },
+]
 const step = ref(1)
 const email = ref('')
 const password = ref('')
@@ -9,18 +73,25 @@ const verificationCode = ref('')
 const firstName = ref('')
 const lastName = ref('')
 const countryOfOrigin = ref('')
-const countryCallingCode = ref('')
+const countryCallingCountry = ref('')
 const phoneNumber = ref('')
+const city = ref('')
+const street = ref('')
+const houseNumber = ref('')
+const postalCode = ref('')
 const profilePicture = ref<File | null>(null)
+const profilePicturePreview = ref('')
 const dateOfBirth = ref('')
 const formError = ref('')
 const codeInputFocused = ref(false)
 const codeDigits = computed(() => Array.from(verificationCode.value.padEnd(8, ' ')))
+const avatarInitial = computed(() => email.value.trim().charAt(0).toUpperCase() || '?')
 
 const stepTitle = computed(() => {
   if (step.value === 1) return 'Your account details'
   if (step.value === 2) return 'Verify your email'
-  return 'Create your profile'
+  if (step.value === 3) return 'Personal information'
+  return 'Address and contact'
 })
 
 function handleSubmit() {
@@ -43,6 +114,11 @@ function handleSubmit() {
     }
 
     step.value = 3
+    return
+  }
+
+  if (step.value === 3) {
+    step.value = 4
   }
 }
 
@@ -66,13 +142,31 @@ function handleProfilePictureChange(event: Event) {
 
   if (!(input instanceof HTMLInputElement)) return
 
-  profilePicture.value = input.files?.[0] ?? null
+  const file = input.files?.[0]
+  if (!file) return
+
+  if (profilePicturePreview.value) URL.revokeObjectURL(profilePicturePreview.value)
+  profilePicture.value = file
+  profilePicturePreview.value = URL.createObjectURL(file)
 }
+
+function countryFlag(countryCode: string) {
+  return String.fromCodePoint(
+    ...countryCode
+      .toUpperCase()
+      .split('')
+      .map((letter) => 127397 + letter.charCodeAt(0)),
+  )
+}
+
+onBeforeUnmount(() => {
+  if (profilePicturePreview.value) URL.revokeObjectURL(profilePicturePreview.value)
+})
 </script>
 
 <template>
   <form class="auth-form" @submit.prevent="handleSubmit">
-    <p class="step-label">STEP {{ step }} OF 3 <span aria-hidden="true">·</span> {{ stepTitle }}</p>
+    <p class="step-label">STEP {{ step }} OF 4 <span aria-hidden="true">·</span> {{ stepTitle }}</p>
 
     <template v-if="step === 1">
       <label class="field">
@@ -162,92 +256,178 @@ function handleProfilePictureChange(event: Event) {
       </div>
     </template>
 
-    <template v-else>
+    <template v-else-if="step === 3">
       <p class="step-description">
-        Your email is verified. Add a few details to complete your profile.
+        Your email is verified. Add your personal details and profile picture.
       </p>
-      <div class="field-row">
-        <label class="field">
-          <span>First name</span>
+      <section class="profile-photo-section" aria-label="Profile picture">
+        <div class="avatar" role="img" aria-label="Profile picture preview">
+          <img v-if="profilePicturePreview" :src="profilePicturePreview" alt="" />
+          <span v-else>{{ avatarInitial }}</span>
+        </div>
+        <label class="photo-upload">
+          <span>Choose profile picture</span>
           <input
-            v-model="firstName"
-            type="text"
-            name="firstName"
-            autocomplete="given-name"
-            required
+            type="file"
+            name="profilePicture"
+            accept="image/*"
+            aria-label="Choose a profile picture"
+            @change="handleProfilePictureChange"
           />
         </label>
-        <label class="field">
-          <span>Last name</span>
-          <input
-            v-model="lastName"
-            type="text"
-            name="lastName"
-            autocomplete="family-name"
-            required
-          />
-        </label>
-      </div>
-
-      <label class="field">
-        <span>Country of origin</span>
-        <input
-          v-model="countryOfOrigin"
-          type="text"
-          name="countryOfOrigin"
-          autocomplete="country-name"
-          placeholder="e.g. Poland"
-          required
-        />
-      </label>
-
-      <div class="field-row phone-row">
-        <label class="field">
-          <span>Country calling code</span>
-          <input
-            v-model="countryCallingCode"
-            type="tel"
-            name="countryCallingCode"
-            autocomplete="tel-country-code"
-            inputmode="tel"
-            pattern="\+[0-9]{1,4}"
-            placeholder="+48"
-            required
-          />
-        </label>
-        <label class="field">
-          <span>Phone number</span>
-          <input
-            v-model="phoneNumber"
-            type="tel"
-            name="phoneNumber"
-            autocomplete="tel-national"
-            inputmode="tel"
-            placeholder="123 456 789"
-            required
-          />
-        </label>
-      </div>
-
-      <label class="field">
-        <span>Profile picture</span>
-        <input
-          class="file-input"
-          type="file"
-          name="profilePicture"
-          accept="image/*"
-          @change="handleProfilePictureChange"
-        />
         <span v-if="profilePicture" class="field-hint">{{ profilePicture.name }}</span>
-      </label>
+      </section>
 
-      <label class="field">
-        <span>Date of birth</span>
-        <input v-model="dateOfBirth" type="date" name="dateOfBirth" autocomplete="bday" required />
-      </label>
+      <section class="profile-section" aria-labelledby="personal-information-title">
+        <h2 id="personal-information-title" class="section-title">Personal information</h2>
+        <div class="field-row">
+          <label class="field">
+            <span>First name</span>
+            <input
+              v-model="firstName"
+              type="text"
+              name="firstName"
+              autocomplete="given-name"
+              required
+            />
+          </label>
+          <label class="field">
+            <span>Last name</span>
+            <input
+              v-model="lastName"
+              type="text"
+              name="lastName"
+              autocomplete="family-name"
+              required
+            />
+          </label>
+        </div>
+
+        <label class="field">
+          <span>Date of birth</span>
+          <input
+            v-model="dateOfBirth"
+            type="date"
+            name="dateOfBirth"
+            autocomplete="bday"
+            required
+          />
+        </label>
+
+        <label class="field">
+          <span>Country of origin</span>
+          <select
+            v-model="countryOfOrigin"
+            name="countryOfOrigin"
+            autocomplete="country-name"
+            required
+          >
+            <option disabled value="">Select a country</option>
+            <option v-for="country in countries" :key="country.code" :value="country.code">
+              {{ countryFlag(country.code) }}{{ '\u00a0\u00a0' }}{{ country.name }}
+            </option>
+          </select>
+        </label>
+      </section>
 
       <div class="actions">
         <button class="secondary-button" type="button" @click="step = 2">Back</button>
+        <button class="primary-button" type="submit">Continue</button>
+      </div>
+    </template>
+
+    <template v-else>
+      <p class="step-description">Add your home address and contact details.</p>
+      <section class="profile-section" aria-labelledby="address-title">
+        <h2 id="address-title" class="section-title">Home address</h2>
+        <div class="field-row">
+          <label class="field">
+            <span>City</span>
+            <input v-model="city" type="text" name="city" autocomplete="address-level2" required />
+          </label>
+          <label class="field">
+            <span>Postal code</span>
+            <input
+              v-model="postalCode"
+              type="text"
+              name="postalCode"
+              autocomplete="postal-code"
+              required
+            />
+          </label>
+        </div>
+        <div class="field-row">
+          <label class="field">
+            <span>Street</span>
+            <input
+              v-model="street"
+              type="text"
+              name="street"
+              autocomplete="address-line1"
+              required
+            />
+          </label>
+          <label class="field">
+            <span>House number</span>
+            <input
+              v-model="houseNumber"
+              type="text"
+              name="houseNumber"
+              autocomplete="address-line2"
+              required
+            />
+          </label>
+        </div>
+      </section>
+
+      <section class="profile-section" aria-labelledby="contact-information-title">
+        <h2 id="contact-information-title" class="section-title">Contact information</h2>
+        <label class="field">
+          <span>Email address</span>
+          <input
+            :value="email"
+            type="email"
+            name="profileEmail"
+            autocomplete="email"
+            readonly
+          />
+        </label>
+        <div class="field-row phone-row">
+          <label class="field">
+            <span>Country calling code</span>
+            <select
+              v-model="countryCallingCountry"
+              name="countryCallingCode"
+              autocomplete="tel-country-code"
+              required
+            >
+              <option disabled value="">Code</option>
+              <option
+                v-for="country in countries"
+                :key="country.code"
+                :value="country.code"
+              >
+                {{ countryFlag(country.code) }}{{ '\u00a0\u00a0' }}{{ country.callingCode }}
+              </option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Phone number</span>
+            <input
+              v-model="phoneNumber"
+              type="tel"
+              name="phoneNumber"
+              autocomplete="tel-national"
+              inputmode="tel"
+              placeholder="123 456 789"
+              required
+            />
+          </label>
+        </div>
+      </section>
+
+      <div class="actions">
+        <button class="secondary-button" type="button" @click="step = 3">Back</button>
         <button class="primary-button" type="submit">Create account</button>
       </div>
     </template>
@@ -286,6 +466,80 @@ function handleProfilePictureChange(event: Event) {
   overflow-wrap: anywhere;
 }
 
+.profile-photo-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 0 8px;
+}
+
+.avatar {
+  display: grid;
+  width: 96px;
+  height: 96px;
+  flex: 0 0 96px;
+  overflow: hidden;
+  place-items: center;
+  border-radius: 50%;
+  background: #e8e9ff;
+  color: var(--color-primary);
+  font-size: 25px;
+  font-weight: 600;
+}
+
+.avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.photo-upload {
+  position: relative;
+  display: inline-flex;
+  min-height: 36px;
+  align-items: center;
+  padding: 0 12px;
+  border: 1px solid #d8dce5;
+  color: var(--color-primary);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.photo-upload:hover {
+  background: #f7f7ff;
+}
+
+.photo-upload input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
+.photo-upload:focus-within {
+  outline: 3px solid rgb(90 98 232 / 35%);
+  outline-offset: 3px;
+}
+
+.profile-section {
+  display: grid;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #eceef2;
+}
+
+.section-title {
+  margin: 0;
+  color: var(--color-ink);
+  font-size: 13px;
+  font-weight: 600;
+}
+
 .field {
   display: grid;
   gap: 7px;
@@ -300,7 +554,9 @@ function handleProfilePictureChange(event: Event) {
   gap: 12px;
 }
 
-.field input:not([type='file']) {
+.field input,
+.field select {
+  min-width: 0;
   width: 100%;
   height: 38px;
   padding: 0 10px;
@@ -314,20 +570,19 @@ function handleProfilePictureChange(event: Event) {
   font-weight: 400;
 }
 
-.field input:not([type='file'])::placeholder {
+.field input::placeholder {
   color: #a6adbb;
 }
 
-.field input:not([type='file']):focus {
+.field input:focus,
+.field select:focus {
   border-color: #8188f1;
   box-shadow: 0 1px 0 var(--color-primary);
 }
 
-.file-input {
-  width: 100%;
+.field input[readonly] {
+  background: #f5f6f8;
   color: var(--color-muted);
-  font-size: 11px;
-  font-weight: 400;
 }
 
 .code-input {
