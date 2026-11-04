@@ -11,16 +11,55 @@ describe('authentication forms', () => {
 
     expect(wrapper.find('input[type="email"]').exists()).toBe(true)
     expect(wrapper.find('input[name="password"]').exists()).toBe(true)
+    expect(wrapper.find('input[name="remember"]').exists()).toBe(false)
     expect(wrapper.find('button[type="submit"]').text()).toBe('Login')
   })
 
-  it('renders the basic account registration fields', () => {
+  it('starts registration by asking for email and matching passwords', () => {
     const wrapper = mount(SignUpForm)
 
-    expect(wrapper.find('input[name="name"]').exists()).toBe(true)
     expect(wrapper.find('input[type="email"]').exists()).toBe(true)
     expect(wrapper.find('input[name="password"]').exists()).toBe(true)
     expect(wrapper.find('input[name="confirmPassword"]').exists()).toBe(true)
+    expect(wrapper.find('input[name="firstName"]').exists()).toBe(false)
+    expect(wrapper.find('button[type="submit"]').text()).toBe('Continue')
+  })
+
+  it('requires matching passwords before showing email verification', async () => {
+    const wrapper = mount(SignUpForm)
+
+    await wrapper.find('input[type="email"]').setValue('user@example.com')
+    await wrapper.find('input[name="password"]').setValue('password1')
+    await wrapper.find('input[name="confirmPassword"]').setValue('password2')
+    await wrapper.find('form').trigger('submit')
+
+    expect(wrapper.find('[role="alert"]').text()).toBe('Your passwords do not match.')
+    expect(wrapper.find('input[name="verificationCode"]').exists()).toBe(false)
+  })
+
+  it('verifies an 8-digit code before asking for profile details', async () => {
+    const wrapper = mount(SignUpForm)
+
+    await wrapper.find('input[type="email"]').setValue('user@example.com')
+    await wrapper.find('input[name="password"]').setValue('password1')
+    await wrapper.find('input[name="confirmPassword"]').setValue('password1')
+    await wrapper.find('form').trigger('submit')
+    expect(wrapper.find('input[name="verificationCode"]').exists()).toBe(true)
+    expect(wrapper.findAll('.code-cell')).toHaveLength(8)
+
+    const codeInput = wrapper.find('input[name="verificationCode"]')
+    expect(codeInput.attributes('pattern')).toBe('[0-9]{8}')
+    await codeInput.setValue('12a345678')
+    expect((codeInput.element as HTMLInputElement).value).toBe('12345678')
+    await wrapper.find('form').trigger('submit')
+
+    expect(wrapper.find('input[name="firstName"]').exists()).toBe(true)
+    expect(wrapper.find('input[name="lastName"]').exists()).toBe(true)
+    expect(wrapper.find('input[name="countryOfOrigin"]').exists()).toBe(true)
+    expect(wrapper.find('input[name="countryCallingCode"]').exists()).toBe(true)
+    expect(wrapper.find('input[name="phoneNumber"]').exists()).toBe(true)
+    expect(wrapper.find('input[name="profilePicture"]').attributes('accept')).toBe('image/*')
+    expect(wrapper.find('input[name="dateOfBirth"]').attributes('type')).toBe('date')
   })
 
   it('starts password reset by asking for an email address', () => {

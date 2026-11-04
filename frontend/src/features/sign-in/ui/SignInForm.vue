@@ -40,10 +40,6 @@ const passwordVisible = ref(false)
     </label>
 
     <div class="form-options">
-      <label class="remember-option">
-        <input type="checkbox" name="remember" />
-        <span>Keep me signed in</span>
-      </label>
       <RouterLink class="text-link" to="/reset-password">Forgot password?</RouterLink>
     </div>
 
@@ -116,25 +112,10 @@ const passwordVisible = ref(false)
 .form-options {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 10px;
   margin-top: -2px;
   font-size: 11px;
-}
-
-.remember-option {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  color: #727e96;
-  cursor: pointer;
-}
-
-.remember-option input {
-  width: 16px;
-  height: 16px;
-  margin: 0;
-  accent-color: var(--color-primary);
 }
 
 .text-link,
