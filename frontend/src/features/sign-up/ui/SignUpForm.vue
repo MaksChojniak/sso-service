@@ -85,6 +85,31 @@ function sanitizeVerificationCode(event: Event) {
   input.value = verificationCode.value
 }
 
+function formatPhoneNumber(event: Event) {
+  const input = event.target
+
+  if (!(input instanceof HTMLInputElement)) return
+
+  const digitsBeforeCaret = input.value
+    .slice(0, input.selectionStart ?? input.value.length)
+    .replace(/\D/g, '').length
+  const digits = input.value.replace(/\D/g, '').slice(0, 15)
+  const formatted = digits.match(/.{1,3}/g)?.join(' ') ?? ''
+
+  phoneNumber.value = formatted
+  input.value = formatted
+
+  let caretPosition = 0
+  let countedDigits = 0
+
+  while (caretPosition < formatted.length && countedDigits < digitsBeforeCaret) {
+    if (/\d/.test(formatted[caretPosition])) countedDigits += 1
+    caretPosition += 1
+  }
+
+  input.setSelectionRange(caretPosition, caretPosition)
+}
+
 function handleProfilePictureChange(event: Event) {
   const input = event.target
 
@@ -340,13 +365,15 @@ onBeforeUnmount(() => {
           <label class="field">
             <span>Phone number</span>
             <input
-              v-model="phoneNumber"
+              :value="phoneNumber"
               type="tel"
               name="phoneNumber"
               autocomplete="tel-national"
               inputmode="tel"
-              placeholder="123 456 789"
+              maxlength="19"
+              placeholder="111 111 111"
               required
+              @input="formatPhoneNumber"
             />
           </label>
         </div>

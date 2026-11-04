@@ -86,6 +86,11 @@ describe('authentication forms', () => {
       'user@example.com',
     )
     expect(wrapper.find('input[name="phoneNumber"]').exists()).toBe(true)
+    const phoneInput = wrapper.find('input[name="phoneNumber"]')
+    await phoneInput.setValue('111222333')
+    expect((phoneInput.element as HTMLInputElement).value).toBe('111 222 333')
+    await phoneInput.setValue('+48 111 222 333 444 5555')
+    expect((phoneInput.element as HTMLInputElement).value).toBe('481 112 223 334 445')
     expect(wrapper.find('button[aria-label="Country calling code"]').exists()).toBe(true)
     await wrapper.find('form').trigger('submit')
     expect(wrapper.find('[role="alert"]').text()).toBe('Select your country calling code.')
