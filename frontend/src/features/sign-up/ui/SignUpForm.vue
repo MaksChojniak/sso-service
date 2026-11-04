@@ -1,70 +1,8 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref } from 'vue'
 
-const countries = [
-  { code: 'AR', name: 'Argentina', callingCode: '+54' },
-  { code: 'AU', name: 'Australia', callingCode: '+61' },
-  { code: 'AT', name: 'Austria', callingCode: '+43' },
-  { code: 'BE', name: 'Belgium', callingCode: '+32' },
-  { code: 'BR', name: 'Brazil', callingCode: '+55' },
-  { code: 'BG', name: 'Bulgaria', callingCode: '+359' },
-  { code: 'CA', name: 'Canada', callingCode: '+1' },
-  { code: 'CL', name: 'Chile', callingCode: '+56' },
-  { code: 'CN', name: 'China', callingCode: '+86' },
-  { code: 'CO', name: 'Colombia', callingCode: '+57' },
-  { code: 'HR', name: 'Croatia', callingCode: '+385' },
-  { code: 'CY', name: 'Cyprus', callingCode: '+357' },
-  { code: 'CZ', name: 'Czechia', callingCode: '+420' },
-  { code: 'DK', name: 'Denmark', callingCode: '+45' },
-  { code: 'EG', name: 'Egypt', callingCode: '+20' },
-  { code: 'EE', name: 'Estonia', callingCode: '+372' },
-  { code: 'FI', name: 'Finland', callingCode: '+358' },
-  { code: 'FR', name: 'France', callingCode: '+33' },
-  { code: 'DE', name: 'Germany', callingCode: '+49' },
-  { code: 'GR', name: 'Greece', callingCode: '+30' },
-  { code: 'HK', name: 'Hong Kong', callingCode: '+852' },
-  { code: 'HU', name: 'Hungary', callingCode: '+36' },
-  { code: 'IS', name: 'Iceland', callingCode: '+354' },
-  { code: 'IN', name: 'India', callingCode: '+91' },
-  { code: 'ID', name: 'Indonesia', callingCode: '+62' },
-  { code: 'IE', name: 'Ireland', callingCode: '+353' },
-  { code: 'IL', name: 'Israel', callingCode: '+972' },
-  { code: 'IT', name: 'Italy', callingCode: '+39' },
-  { code: 'JP', name: 'Japan', callingCode: '+81' },
-  { code: 'KE', name: 'Kenya', callingCode: '+254' },
-  { code: 'LV', name: 'Latvia', callingCode: '+371' },
-  { code: 'LT', name: 'Lithuania', callingCode: '+370' },
-  { code: 'LU', name: 'Luxembourg', callingCode: '+352' },
-  { code: 'MY', name: 'Malaysia', callingCode: '+60' },
-  { code: 'MX', name: 'Mexico', callingCode: '+52' },
-  { code: 'MA', name: 'Morocco', callingCode: '+212' },
-  { code: 'NL', name: 'Netherlands', callingCode: '+31' },
-  { code: 'NZ', name: 'New Zealand', callingCode: '+64' },
-  { code: 'NG', name: 'Nigeria', callingCode: '+234' },
-  { code: 'NO', name: 'Norway', callingCode: '+47' },
-  { code: 'PK', name: 'Pakistan', callingCode: '+92' },
-  { code: 'PH', name: 'Philippines', callingCode: '+63' },
-  { code: 'PL', name: 'Poland', callingCode: '+48' },
-  { code: 'PT', name: 'Portugal', callingCode: '+351' },
-  { code: 'RO', name: 'Romania', callingCode: '+40' },
-  { code: 'SA', name: 'Saudi Arabia', callingCode: '+966' },
-  { code: 'SG', name: 'Singapore', callingCode: '+65' },
-  { code: 'SK', name: 'Slovakia', callingCode: '+421' },
-  { code: 'SI', name: 'Slovenia', callingCode: '+386' },
-  { code: 'ZA', name: 'South Africa', callingCode: '+27' },
-  { code: 'KR', name: 'South Korea', callingCode: '+82' },
-  { code: 'ES', name: 'Spain', callingCode: '+34' },
-  { code: 'SE', name: 'Sweden', callingCode: '+46' },
-  { code: 'CH', name: 'Switzerland', callingCode: '+41' },
-  { code: 'TW', name: 'Taiwan', callingCode: '+886' },
-  { code: 'TH', name: 'Thailand', callingCode: '+66' },
-  { code: 'TR', name: 'Türkiye', callingCode: '+90' },
-  { code: 'UA', name: 'Ukraine', callingCode: '+380' },
-  { code: 'AE', name: 'United Arab Emirates', callingCode: '+971' },
-  { code: 'GB', name: 'United Kingdom', callingCode: '+44' },
-  { code: 'US', name: 'United States', callingCode: '+1' },
-  { code: 'VN', name: 'Vietnam', callingCode: '+84' },
-]
+import CountryPicker from './CountryPicker.vue'
+
 const step = ref(1)
 const email = ref('')
 const password = ref('')
@@ -118,7 +56,17 @@ function handleSubmit() {
   }
 
   if (step.value === 3) {
+    if (!countryOfOrigin.value) {
+      formError.value = 'Select your country of origin.'
+      return
+    }
+
     step.value = 4
+    return
+  }
+
+  if (!countryCallingCountry.value) {
+    formError.value = 'Select your country calling code.'
   }
 }
 
@@ -148,15 +96,6 @@ function handleProfilePictureChange(event: Event) {
   if (profilePicturePreview.value) URL.revokeObjectURL(profilePicturePreview.value)
   profilePicture.value = file
   profilePicturePreview.value = URL.createObjectURL(file)
-}
-
-function countryFlag(countryCode: string) {
-  return String.fromCodePoint(
-    ...countryCode
-      .toUpperCase()
-      .split('')
-      .map((letter) => 127397 + letter.charCodeAt(0)),
-  )
 }
 
 onBeforeUnmount(() => {
@@ -314,22 +253,18 @@ onBeforeUnmount(() => {
           />
         </label>
 
-        <label class="field">
+        <div class="field">
           <span>Country of origin</span>
-          <select
+          <CountryPicker
             v-model="countryOfOrigin"
-            name="countryOfOrigin"
-            autocomplete="country-name"
-            required
-          >
-            <option disabled value="">Select a country</option>
-            <option v-for="country in countries" :key="country.code" :value="country.code">
-              {{ countryFlag(country.code) }}{{ '\u00a0\u00a0' }}{{ country.name }}
-            </option>
-          </select>
-        </label>
+            mode="country"
+            label="Country of origin"
+            @update:model-value="formError = ''"
+          />
+        </div>
       </section>
 
+      <p v-if="formError" class="form-error" role="alert">{{ formError }}</p>
       <div class="actions">
         <button class="secondary-button" type="button" @click="step = 2">Back</button>
         <button class="primary-button" type="submit">Continue</button>
@@ -393,24 +328,15 @@ onBeforeUnmount(() => {
           />
         </label>
         <div class="field-row phone-row">
-          <label class="field">
+          <div class="field">
             <span>Country calling code</span>
-            <select
+            <CountryPicker
               v-model="countryCallingCountry"
-              name="countryCallingCode"
-              autocomplete="tel-country-code"
-              required
-            >
-              <option disabled value="">Code</option>
-              <option
-                v-for="country in countries"
-                :key="country.code"
-                :value="country.code"
-              >
-                {{ countryFlag(country.code) }}{{ '\u00a0\u00a0' }}{{ country.callingCode }}
-              </option>
-            </select>
-          </label>
+              mode="callingCode"
+              label="Country calling code"
+              @update:model-value="formError = ''"
+            />
+          </div>
           <label class="field">
             <span>Phone number</span>
             <input
@@ -426,6 +352,7 @@ onBeforeUnmount(() => {
         </div>
       </section>
 
+      <p v-if="formError" class="form-error" role="alert">{{ formError }}</p>
       <div class="actions">
         <button class="secondary-button" type="button" @click="step = 3">Back</button>
         <button class="primary-button" type="submit">Create account</button>

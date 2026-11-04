@@ -55,17 +55,26 @@ describe('authentication forms', () => {
 
     expect(wrapper.find('input[name="firstName"]').exists()).toBe(true)
     expect(wrapper.find('input[name="lastName"]').exists()).toBe(true)
-    expect(wrapper.find('select[name="countryOfOrigin"]').exists()).toBe(true)
+    expect(wrapper.find('button[aria-label="Country of origin"]').exists()).toBe(true)
     expect(wrapper.find('input[name="profilePicture"]').attributes('accept')).toBe('image/*')
     expect(wrapper.find('.avatar').text()).toBe('U')
-    expect(wrapper.find('select[name="countryOfOrigin"] option').text()).toContain(
-      'Select a country',
-    )
-    expect(wrapper.find('select[name="countryOfOrigin"] option[value="PL"]').text()).toContain(
-      'Poland',
-    )
     expect(wrapper.find('input[name="dateOfBirth"]').attributes('type')).toBe('date')
     expect(wrapper.find('button[type="submit"]').text()).toBe('Continue')
+
+    await wrapper.find('form').trigger('submit')
+    expect(wrapper.find('[role="alert"]').text()).toBe('Select your country of origin.')
+    await wrapper.find('button[aria-label="Country of origin"]').trigger('click')
+    const countrySearch = wrapper.find('input[role="combobox"]')
+    expect(countrySearch.attributes('placeholder')).toContain('countries')
+    await countrySearch.setValue('poland')
+    expect(wrapper.findAll('[role="option"]')).toHaveLength(1)
+    expect(wrapper.find('[role="option"]').text()).toContain('Poland')
+    expect(wrapper.find('[role="option"] img').attributes('src')).toContain('/flags/PL.svg')
+    await wrapper.find('[role="option"]').trigger('click')
+    expect(wrapper.find('button[aria-label="Country of origin"]').text()).toContain('Poland')
+    expect(
+      wrapper.find('button[aria-label="Country of origin"] img').attributes('src'),
+    ).toContain('/flags/PL.svg')
 
     await wrapper.find('form').trigger('submit')
     expect(wrapper.find('input[name="city"]').exists()).toBe(true)
@@ -77,11 +86,22 @@ describe('authentication forms', () => {
       'user@example.com',
     )
     expect(wrapper.find('input[name="phoneNumber"]').exists()).toBe(true)
-    expect(wrapper.find('select[name="countryCallingCode"]').exists()).toBe(true)
-    expect(wrapper.find('select[name="countryCallingCode"] option').text()).toBe('Code')
-    expect(wrapper.find('select[name="countryCallingCode"] option[value="PL"]').text()).toContain(
-      '+48',
-    )
+    expect(wrapper.find('button[aria-label="Country calling code"]').exists()).toBe(true)
+    await wrapper.find('form').trigger('submit')
+    expect(wrapper.find('[role="alert"]').text()).toBe('Select your country calling code.')
+    await wrapper.find('button[aria-label="Country calling code"]').trigger('click')
+    const codeSearch = wrapper.find('input[role="combobox"]')
+    expect(codeSearch.attributes('placeholder')).toContain('countries or codes')
+    await codeSearch.setValue('+48')
+    expect(wrapper.findAll('[role="option"]')).toHaveLength(1)
+    expect(wrapper.find('[role="option"]').text()).toContain('+48')
+    expect(wrapper.find('[role="option"]').text()).not.toContain('Poland')
+    expect(wrapper.find('[role="option"] img').attributes('src')).toContain('/flags/PL.svg')
+    await wrapper.find('[role="option"]').trigger('click')
+    expect(wrapper.find('button[aria-label="Country calling code"]').text()).toContain('+48')
+    expect(
+      wrapper.find('button[aria-label="Country calling code"] img').attributes('src'),
+    ).toContain('/flags/PL.svg')
   })
 
   it('starts password reset by asking for an email address', () => {
