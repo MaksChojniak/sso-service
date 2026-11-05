@@ -4,8 +4,29 @@ import { mount } from '@vue/test-utils'
 import SignInForm from '../features/sign-in/ui/SignInForm.vue'
 import SignUpForm from '../features/sign-up/ui/SignUpForm.vue'
 import ResetPasswordForm from '../features/reset-password/ui/ResetPasswordForm.vue'
+import AdminLoginPage from '../pages/admin-login/ui/AdminLoginPage.vue'
+import AdminPanelPage from '../pages/admin-panel/ui/AdminPanelPage.vue'
 
 describe('authentication forms', () => {
+  it('renders the admin sign-in form', () => {
+    const wrapper = mount(AdminLoginPage, { global: { stubs: ['RouterLink'] } })
+
+    expect(wrapper.find('input[type="email"]').exists()).toBe(true)
+    expect(wrapper.find('input[name="password"]').exists()).toBe(true)
+    expect(wrapper.find('button[type="submit"]').text()).toBe('Sign in')
+    expect(wrapper.text()).toContain('Authentication will be connected to Django later.')
+  })
+
+  it('renders an empty admin workspace with a left sidebar', () => {
+    const wrapper = mount(AdminPanelPage, { global: { stubs: ['RouterLink'] } })
+
+    expect(wrapper.find('aside.sidebar').exists()).toBe(true)
+    expect(wrapper.find('.nav-link').text()).toBe('Overview')
+    expect(wrapper.find('main.workspace').exists()).toBe(true)
+    expect(wrapper.find('.workspace-content').text()).toBe('')
+    expect(wrapper.text()).not.toContain('Reports')
+  })
+
   it('renders the email and password sign-in fields', () => {
     const wrapper = mount(SignInForm, { global: { stubs: ['RouterLink'] } })
 

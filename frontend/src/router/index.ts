@@ -20,6 +20,14 @@ const router = createRouter({
       component: () => import('@/pages/reset-password/ui/ResetPasswordPage.vue'),
     },
     {
+      path: '/admin/login',
+      component: () => import('@/pages/admin-login/ui/AdminLoginPage.vue'),
+    },
+    {
+      path: '/admin',
+      component: () => import('@/pages/admin-panel/ui/AdminPanelPage.vue'),
+    },
+    {
       path: '/:pathMatch(.*)*',
       redirect: '/login',
     },
