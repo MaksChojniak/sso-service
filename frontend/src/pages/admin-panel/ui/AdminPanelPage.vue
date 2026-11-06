@@ -8,6 +8,14 @@
         <span>mk.dev <span class="brand-suffix">admin</span></span>
       </RouterLink>
 
+      <div class="admin-profile">
+        <span class="avatar" aria-hidden="true">A</span>
+        <span class="profile-copy">
+          <span class="profile-name">Administrator</span>
+          <span class="profile-role">Admin account</span>
+        </span>
+      </div>
+
       <div class="sidebar-section-label">WORKSPACE</div>
       <nav class="navigation">
         <RouterLink class="nav-link" to="/admin" aria-current="page">
@@ -22,13 +30,6 @@
       </nav>
 
       <div class="sidebar-bottom">
-        <div class="admin-profile">
-          <span class="avatar" aria-hidden="true">A</span>
-          <span class="profile-copy">
-            <span class="profile-name">Administrator</span>
-            <span class="profile-role">Admin account</span>
-          </span>
-        </div>
         <RouterLink class="sign-out" to="/admin/login">
           <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
             <path d="M8 4H4v12h4M11 6l4 4-4 4m4-4H7" />
@@ -75,7 +76,7 @@
   width: fit-content;
   align-items: center;
   gap: 10px;
-  margin: 1px 0 42px 8px;
+  margin: 1px 0 22px 8px;
   color: var(--color-ink);
   font-size: 18px;
   font-weight: 750;
@@ -156,15 +157,17 @@
 
 .sidebar-bottom {
   display: grid;
-  gap: 9px;
   margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid #eceef4;
 }
 
 .admin-profile {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 12px 8px;
+  margin-bottom: 28px;
+  padding: 14px 8px;
   border-top: 1px solid #eceef4;
 }
 
@@ -253,7 +256,7 @@ h1 {
   }
 
   .sidebar {
-    position: static;
+    position: relative;
     width: 100%;
     min-height: auto;
     padding: 15px 16px 12px;
@@ -262,6 +265,7 @@ h1 {
   }
 
   .brand {
+    min-height: 38px;
     margin: 0 0 18px 2px;
   }
 
@@ -280,12 +284,19 @@ h1 {
   .sidebar-bottom {
     position: absolute;
     top: 15px;
-    right: 16px;
+    right: 4px;
     display: flex;
     margin: 0;
+    padding: 0;
+    border: 0;
   }
 
   .admin-profile {
+    position: absolute;
+    top: 15px;
+    right: 62px;
+    height: 38px;
+    margin: 0;
     padding: 0;
     border: 0;
   }
