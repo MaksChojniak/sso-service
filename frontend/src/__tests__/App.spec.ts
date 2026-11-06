@@ -2,19 +2,28 @@ import { describe, expect, it } from 'vitest'
 import { mount } from '@vue/test-utils'
 
 import SignInForm from '../features/sign-in/ui/SignInForm.vue'
+import AdminSignInForm from '../features/admin-sign-in/ui/AdminSignInForm.vue'
 import SignUpForm from '../features/sign-up/ui/SignUpForm.vue'
 import ResetPasswordForm from '../features/reset-password/ui/ResetPasswordForm.vue'
-import AdminLoginPage from '../pages/admin-login/ui/AdminLoginPage.vue'
 import AdminPanelPage from '../pages/admin-panel/ui/AdminPanelPage.vue'
 
 describe('authentication forms', () => {
   it('renders the admin sign-in form', () => {
-    const wrapper = mount(AdminLoginPage, { global: { stubs: ['RouterLink'] } })
+    const wrapper = mount(AdminSignInForm)
 
     expect(wrapper.find('input[type="email"]').exists()).toBe(true)
     expect(wrapper.find('input[name="password"]').exists()).toBe(true)
     expect(wrapper.find('button[type="submit"]').text()).toBe('Sign in')
-    expect(wrapper.text()).toContain('Authentication will be connected to Django later.')
+  })
+
+  it('uses the same shared auth fields and submit button for SSO and admin sign-in', () => {
+    const ssoForm = mount(SignInForm, { global: { stubs: ['RouterLink'] } })
+    const adminForm = mount(AdminSignInForm)
+
+    expect(ssoForm.find('.auth-field').exists()).toBe(true)
+    expect(adminForm.find('.auth-field').exists()).toBe(true)
+    expect(ssoForm.find('.auth-submit-button').exists()).toBe(true)
+    expect(adminForm.find('.auth-submit-button').exists()).toBe(true)
   })
 
   it('renders an empty admin workspace with a left sidebar', () => {

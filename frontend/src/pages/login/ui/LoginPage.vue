@@ -4,7 +4,11 @@ import SignInForm from '@/features/sign-in/ui/SignInForm.vue'
 </script>
 
 <template>
-  <AuthLayout title="Welcome back" description="Sign in to continue to your account.">
+  <AuthLayout
+    title="Welcome back"
+    description="Sign in to continue to your account."
+    eyebrow="ACCOUNT ACCESS"
+  >
     <SignInForm />
     <template #footer>
       <span>Don't have an account?</span>

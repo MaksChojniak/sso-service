@@ -1,23 +1,39 @@
 <script setup lang="ts">
-defineProps<{
-  title: string
-  description: string
-}>()
+withDefaults(
+  defineProps<{
+    title: string
+    description: string
+    eyebrow?: string
+    brandSuffix?: string
+    brandTo?: string
+    brandLabel?: string
+  }>(),
+  {
+    brandTo: '/login',
+    brandLabel: 'mk.dev home',
+  },
+)
 </script>
 
 <template>
   <main class="auth-shell">
     <section class="auth-card" aria-labelledby="auth-title">
-      <RouterLink class="brand" to="/login" aria-label="mk.dev home">
+      <RouterLink class="brand" :to="brandTo" :aria-label="brandLabel">
         <span class="brand-mark" aria-hidden="true">
           <span></span><span></span><span></span><span></span>
         </span>
-        <span>mk.dev</span>
+        <span>
+          mk.dev <span v-if="brandSuffix" class="brand-suffix">{{ brandSuffix }}</span>
+        </span>
       </RouterLink>
+      <span v-if="eyebrow" class="eyebrow">{{ eyebrow }}</span>
       <h1 id="auth-title">{{ title }}</h1>
       <p class="card-description">{{ description }}</p>
       <slot />
-      <div class="card-footer">
+      <div v-if="$slots.note" class="card-note">
+        <slot name="note" />
+      </div>
+      <div v-if="$slots.footer" class="card-footer">
         <slot name="footer" />
       </div>
     </section>
@@ -34,29 +50,34 @@ defineProps<{
   justify-content: center;
   gap: 24px;
   padding: 32px 20px 18px;
+  background:
+    radial-gradient(ellipse at 50% 0%, rgb(90 98 232 / 8%), transparent 48%),
+    #f6f7fb;
 }
 
 .auth-card {
-  width: min(100%, 440px);
-  padding: 42px 44px 36px;
+  width: min(100%, 420px);
+  padding: 38px;
+  border: 1px solid #e8eaf2;
+  border-radius: 12px;
   background: #fff;
-  box-shadow: 0 2px 8px rgb(0 0 0 / 12%);
+  box-shadow: 0 18px 55px rgb(25 36 59 / 8%);
 }
 
 .brand {
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 30px;
   color: var(--color-ink);
-  font-size: 20px;
-  font-weight: 700;
-  letter-spacing: -0.6px;
+  font-size: 19px;
+  font-weight: 750;
+  letter-spacing: -0.5px;
   text-decoration: none;
 }
 
-.brand-dot {
-  color: var(--color-primary);
+.brand-suffix {
+  color: var(--color-muted);
+  font-weight: 500;
 }
 
 .brand-mark {
@@ -76,26 +97,40 @@ defineProps<{
   opacity: 0.68;
 }
 
+.eyebrow {
+  display: block;
+  margin-top: 42px;
+  color: var(--color-primary);
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 1.4px;
+}
+
 .auth-card h1 {
-  margin: 0;
+  margin: 10px 0 8px;
   color: var(--color-ink);
-  font-size: 24px;
-  font-weight: 600;
-  letter-spacing: -0.6px;
-  line-height: 1.3;
+  font-size: 27px;
+  font-weight: 650;
+  letter-spacing: -0.8px;
 }
 
 .card-description {
-  margin: 12px 0 26px;
+  margin: 0 0 28px;
   color: var(--color-muted);
-  font-size: 14px;
-  line-height: 1.55;
+  font-size: 13px;
 }
 
 .card-footer {
-  margin-top: 24px;
+  margin-top: 22px;
   color: #505b70;
   font-size: 13px;
+}
+
+.card-note {
+  margin-top: 22px;
+  color: var(--color-muted);
+  font-size: 11px;
+  text-align: center;
 }
 
 .page-footer {
@@ -114,11 +149,9 @@ defineProps<{
   .auth-card {
     width: 100%;
     padding: 32px 24px 26px;
+    border: 0;
+    border-radius: 0;
     box-shadow: none;
-  }
-
-  .brand {
-    margin-bottom: 32px;
   }
 
   .page-footer {
