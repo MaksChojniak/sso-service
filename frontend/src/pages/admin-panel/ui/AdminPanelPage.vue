@@ -1,3 +1,9 @@
+<script setup lang="ts">
+import { ref } from 'vue'
+
+const mobileNavigationOpen = ref(false)
+</script>
+
 <template>
   <div class="admin-shell">
     <aside class="sidebar" aria-label="Admin navigation">
@@ -8,34 +14,73 @@
         <span>mk.dev <span class="brand-suffix">admin</span></span>
       </RouterLink>
 
-      <div class="admin-profile">
-        <span class="avatar" aria-hidden="true">A</span>
-        <span class="profile-copy">
-          <span class="profile-name">Administrator</span>
-          <span class="profile-role">Admin account</span>
-        </span>
-      </div>
+      <button
+        class="mobile-nav-toggle"
+        type="button"
+        aria-controls="admin-navigation"
+        :aria-expanded="mobileNavigationOpen"
+        :aria-label="mobileNavigationOpen ? 'Close navigation' : 'Open navigation'"
+        @click="mobileNavigationOpen = !mobileNavigationOpen"
+      >
+        <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+          <path d="M3 5h14M3 10h14M3 15h14" />
+        </svg>
+      </button>
 
-      <div class="sidebar-section-label">WORKSPACE</div>
-      <nav class="navigation">
-        <RouterLink class="nav-link" to="/admin" aria-current="page">
-          <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-            <rect x="3" y="3" width="5" height="5" rx="1" />
-            <rect x="12" y="3" width="5" height="5" rx="1" />
-            <rect x="3" y="12" width="5" height="5" rx="1" />
-            <rect x="12" y="12" width="5" height="5" rx="1" />
-          </svg>
-          <span>Overview</span>
-        </RouterLink>
-      </nav>
+      <div
+        id="admin-navigation"
+        class="sidebar-content"
+        :class="{ 'is-open': mobileNavigationOpen }"
+        @keydown.esc="mobileNavigationOpen = false"
+      >
+        <div class="mobile-navigation-header">
+          <span>Navigation</span>
+          <button
+            class="mobile-nav-close"
+            type="button"
+            aria-label="Close navigation"
+            @click="mobileNavigationOpen = false"
+          >
+            <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+              <path d="m5 5 10 10M15 5 5 15" />
+            </svg>
+          </button>
+        </div>
 
-      <div class="sidebar-bottom">
-        <RouterLink class="sign-out" to="/admin/login">
-          <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-            <path d="M8 4H4v12h4M11 6l4 4-4 4m4-4H7" />
-          </svg>
-          <span>Sign out</span>
-        </RouterLink>
+        <div class="admin-profile">
+          <span class="avatar" aria-hidden="true">A</span>
+          <span class="profile-copy">
+            <span class="profile-name">Administrator</span>
+            <span class="profile-role">Admin account</span>
+          </span>
+        </div>
+
+        <div class="sidebar-section-label">WORKSPACE</div>
+        <nav class="navigation" aria-label="Workspace navigation">
+          <RouterLink
+            class="nav-link"
+            to="/admin"
+            aria-current="page"
+            @click="mobileNavigationOpen = false"
+          >
+            <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+              <rect x="3" y="3" width="5" height="5" rx="1" />
+              <rect x="12" y="3" width="5" height="5" rx="1" />
+              <rect x="3" y="12" width="5" height="5" rx="1" />
+              <rect x="12" y="12" width="5" height="5" rx="1" />
+            </svg>
+            <span>Overview</span>
+          </RouterLink>
+        </nav>
+
+        <div class="sidebar-bottom">
+          <RouterLink class="sign-out" to="/admin/login" @click="mobileNavigationOpen = false">
+            <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+              <path d="M8 4H4v12h4M11 6l4 4-4 4m4-4H7" />
+            </svg>
+            <span>Sign out</span>
+          </RouterLink>
+        </div>
       </div>
     </aside>
 
@@ -119,6 +164,15 @@
 .navigation {
   display: grid;
   gap: 4px;
+}
+
+.sidebar-content {
+  display: contents;
+}
+
+.mobile-nav-toggle,
+.mobile-navigation-header {
+  display: none;
 }
 
 .nav-link,
@@ -257,24 +311,110 @@ h1 {
 
   .sidebar {
     position: relative;
+    z-index: 1;
+    display: flex;
     width: 100%;
     min-height: auto;
-    padding: 15px 16px 12px;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding: 15px 16px;
     border-right: 0;
     border-bottom: 1px solid #e9ebf2;
   }
 
   .brand {
     min-height: 38px;
-    margin: 0 0 18px 2px;
+    margin: 0 0 0 2px;
+  }
+
+  .mobile-nav-toggle {
+    display: flex;
+    width: 38px;
+    height: 38px;
+    align-items: center;
+    justify-content: center;
+    margin-left: auto;
+    padding: 0;
+    border: 1px solid #e9ebf2;
+    border-radius: 6px;
+    background: #fff;
+    color: #59657b;
+    cursor: pointer;
+  }
+
+  .mobile-nav-toggle svg {
+    width: 17px;
+    height: 17px;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-width: 1.5;
+  }
+
+  .sidebar-content {
+    position: fixed;
+    inset: 0;
+    z-index: 3;
+    display: flex;
+    flex-direction: column;
+    padding: 20px 20px 16px;
+    background: #fff;
+    visibility: hidden;
+    transform: translateX(100%);
+    transition:
+      transform 220ms ease,
+      visibility 0s linear 220ms;
+  }
+
+  .sidebar-content.is-open {
+    visibility: visible;
+    transform: translateX(0);
+    transition: transform 220ms ease;
+  }
+
+  .mobile-navigation-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 18px;
+    border-bottom: 1px solid #e9ebf2;
+    color: var(--color-ink);
+    font-size: 16px;
+    font-weight: 650;
+  }
+
+  .mobile-nav-close {
+    display: grid;
+    width: 38px;
+    height: 38px;
+    place-items: center;
+    border: 1px solid #e9ebf2;
+    border-radius: 6px;
+    background: #fff;
+    color: #59657b;
+    cursor: pointer;
+  }
+
+  .mobile-nav-close svg {
+    width: 18px;
+    height: 18px;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-width: 1.5;
+  }
+
+  .admin-profile {
+    margin: 0 0 28px;
+    padding: 14px 8px;
   }
 
   .sidebar-section-label {
-    display: none;
+    display: block;
   }
 
   .navigation {
-    display: flex;
+    display: grid;
+    gap: 4px;
   }
 
   .nav-link {
@@ -282,34 +422,7 @@ h1 {
   }
 
   .sidebar-bottom {
-    position: absolute;
-    top: 15px;
-    right: 4px;
-    display: flex;
-    margin: 0;
-    padding: 0;
-    border: 0;
-  }
-
-  .admin-profile {
-    position: absolute;
-    top: 15px;
-    right: 62px;
-    height: 38px;
-    margin: 0;
-    padding: 0;
-    border: 0;
-  }
-
-  .profile-copy {
-    display: none;
-  }
-
-  .sign-out {
-    width: 38px;
-    justify-content: center;
-    padding: 0;
-    font-size: 0;
+    margin-top: auto;
   }
 
   .workspace {
@@ -325,6 +438,13 @@ h1 {
   .workspace-content {
     min-height: 50vh;
     padding: 20px;
+  }
+}
+
+@media (max-width: 700px) and (prefers-reduced-motion: reduce) {
+  .sidebar-content,
+  .sidebar-content.is-open {
+    transition: none;
   }
 }
 </style>

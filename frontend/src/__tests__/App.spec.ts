@@ -36,6 +36,27 @@ describe('authentication forms', () => {
     expect(wrapper.text()).not.toContain('Reports')
   })
 
+  it('opens and closes the mobile navigation panel', async () => {
+    const wrapper = mount(AdminPanelPage, { global: { stubs: ['RouterLink'] } })
+    const toggle = wrapper.find('.mobile-nav-toggle')
+    const navigation = wrapper.find('#admin-navigation')
+
+    expect(toggle.attributes('aria-expanded')).toBe('false')
+    expect(navigation.classes()).not.toContain('is-open')
+
+    await toggle.trigger('click')
+    expect(toggle.attributes('aria-expanded')).toBe('true')
+    expect(navigation.classes()).toContain('is-open')
+    expect(navigation.find('.admin-profile').exists()).toBe(true)
+    expect(navigation.find('.sidebar-section-label').text()).toBe('WORKSPACE')
+    expect(navigation.find('.nav-link').text()).toBe('Overview')
+    expect(navigation.find('.sign-out').text()).toBe('Sign out')
+
+    await wrapper.find('.mobile-nav-close').trigger('click')
+    expect(toggle.attributes('aria-expanded')).toBe('false')
+    expect(navigation.classes()).not.toContain('is-open')
+  })
+
   it('renders the email and password sign-in fields', () => {
     const wrapper = mount(SignInForm, { global: { stubs: ['RouterLink'] } })
 
