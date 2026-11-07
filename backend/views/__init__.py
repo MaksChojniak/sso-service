@@ -1,0 +1,1 @@
+"""Layer for HTTP views."""
