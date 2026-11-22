@@ -17,7 +17,12 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import include, path
 
+from views.oidc import openid_configuration
+
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('.well-known/openid-configuration', openid_configuration, name='oidc-discovery'),
+    path('oidc/', include('urls.oidc')),
     path('api/v1/admin/clients/', include('urls.clients')),
 ]
+
