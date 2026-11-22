@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref } from 'vue'
+import { apiRequest } from '@/shared/api/client'
 
 import CountryPicker from './CountryPicker.vue'
 
@@ -67,7 +68,41 @@ function handleSubmit() {
 
   if (!countryCallingCountry.value) {
     formError.value = 'Select your country calling code.'
+    return
   }
+
+  void submitRegistration()
+}
+
+async function submitRegistration() {
+  formError.value = ''
+  const payload = {
+    email: email.value,
+    password: password.value,
+    first_name: firstName.value,
+    last_name: lastName.value,
+    phone_number: `${countryCallingCountry.value || ''}${phoneNumber.value}`.trim(),
+    country: countryOfOrigin.value,
+  }
+
+  const { data, error } = await apiRequest('/api/v1/auth/register', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+
+  if (error) {
+    formError.value = error
+    return
+  }
+
+  const urlParams = new URLSearchParams(window.location.search)
+  const next = urlParams.get('next')
+  if (next) {
+    window.location.href = next
+    return
+  }
+
+  window.location.href = '/login'
 }
 
 function editCredentials() {
@@ -103,7 +138,8 @@ function formatPhoneNumber(event: Event) {
   let countedDigits = 0
 
   while (caretPosition < formatted.length && countedDigits < digitsBeforeCaret) {
-    if (/\d/.test(formatted[caretPosition])) countedDigits += 1
+    const char = formatted[caretPosition]
+    if (char && /\d/.test(char)) countedDigits += 1
     caretPosition += 1
   }
 

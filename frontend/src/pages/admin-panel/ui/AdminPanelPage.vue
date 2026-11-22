@@ -1,7 +1,94 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { apiRequest } from '@/shared/api/client'
 
+const router = useRouter()
 const mobileNavigationOpen = ref(false)
+
+interface Stats {
+  total_clients: number
+  active_clients: number
+  total_users: number
+  active_tokens: number
+}
+
+interface ClientApp {
+  client_id: string
+  name: string
+  service_url: string
+  redirect_uris: string[]
+  is_active: boolean
+  has_signing_key: boolean
+  created_at: string
+}
+
+const stats = ref<Stats>({
+  total_clients: 0,
+  active_clients: 0,
+  total_users: 0,
+  active_tokens: 0,
+})
+
+const clients = ref<ClientApp[]>([])
+const isLoading = ref(true)
+const newClientModalOpen = ref(false)
+const newClientName = ref('')
+const newClientServiceUrl = ref('')
+const newClientRedirectUri = ref('')
+const createError = ref('')
+const generatedSecret = ref('')
+
+async function fetchDashboard() {
+  isLoading.value = true
+  const { data, error } = await apiRequest('/api/v1/admin/clients/stats/overview')
+  if (data?.stats) {
+    stats.value = data.stats
+    clients.value = data.recent_clients || []
+  }
+  isLoading.value = false
+}
+
+async function handleCreateClient() {
+  createError.value = ''
+  generatedSecret.value = ''
+
+  const redirectUris = newClientRedirectUri.value
+    .split('\n')
+    .map(u => u.trim())
+    .filter(Boolean)
+
+  const { data, error } = await apiRequest('/api/v1/admin/clients/', {
+    method: 'POST',
+    body: JSON.stringify({
+      name: newClientName.value,
+      service_url: newClientServiceUrl.value,
+      redirect_uris: redirectUris,
+    }),
+  })
+
+  if (error) {
+    createError.value = error
+    return
+  }
+
+  if (data?.client) {
+    generatedSecret.value = data.client.client_secret || ''
+    newClientName.value = ''
+    newClientServiceUrl.value = ''
+    newClientRedirectUri.value = ''
+    void fetchDashboard()
+  }
+}
+
+async function handleSignOut() {
+  await apiRequest('/api/v1/auth/logout', { method: 'POST' })
+  void router.push('/admin/login')
+}
+
+onMounted(() => {
+  void fetchDashboard()
+})
 </script>
 
 <template>
@@ -74,24 +161,124 @@ const mobileNavigationOpen = ref(false)
         </nav>
 
         <div class="sidebar-bottom">
-          <RouterLink class="sign-out" to="/admin/login" @click="mobileNavigationOpen = false">
+          <button class="sign-out" type="button" @click="handleSignOut">
             <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
               <path d="M8 4H4v12h4M11 6l4 4-4 4m4-4H7" />
             </svg>
             <span>Sign out</span>
-          </RouterLink>
+          </button>
         </div>
       </div>
     </aside>
 
     <main class="workspace">
       <header class="workspace-header">
-        <div>
+        <div class="header-titles">
           <p class="breadcrumb">Workspace <span>/</span> Overview</p>
           <h1>Overview</h1>
         </div>
+        <button class="primary-btn" type="button" @click="newClientModalOpen = true">
+          + Add Client Application
+        </button>
       </header>
-      <section class="workspace-content" aria-label="Workspace content"></section>
+
+      <section class="workspace-content" aria-label="Workspace content">
+        <!-- Stats cards -->
+        <div class="stats-grid">
+          <div class="stat-card">
+            <span class="stat-label">Active Clients</span>
+            <span class="stat-value">{{ stats.active_clients }} / {{ stats.total_clients }}</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">Registered Users</span>
+            <span class="stat-value">{{ stats.total_users }}</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">Active Tokens</span>
+            <span class="stat-value">{{ stats.active_tokens }}</span>
+          </div>
+        </div>
+
+        <!-- Clients table -->
+        <div class="content-card">
+          <div class="card-header">
+            <h2>Registered Client Applications</h2>
+            <button class="refresh-btn" type="button" @click="fetchDashboard">Refresh</button>
+          </div>
+
+          <div v-if="isLoading" class="state-msg">Loading applications...</div>
+          <div v-else-if="clients.length === 0" class="state-msg">
+            No client applications registered yet. Click "+ Add Client Application" to register one.
+          </div>
+          <table v-else class="clients-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Client ID</th>
+                <th>Service URL</th>
+                <th>Keys</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="c in clients" :key="c.client_id">
+                <td class="font-bold">{{ c.name }}</td>
+                <td><code class="client-id-code">{{ c.client_id }}</code></td>
+                <td><a :href="c.service_url" target="_blank" rel="noreferrer" class="link">{{ c.service_url }}</a></td>
+                <td>
+                  <span v-if="c.has_signing_key" class="badge badge-success">RSA 2048</span>
+                  <span v-else class="badge badge-warning">No Key</span>
+                </td>
+                <td>
+                  <span v-if="c.is_active" class="status-dot dot-active">Active</span>
+                  <span v-else class="status-dot dot-inactive">Inactive</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Add Client Modal -->
+        <div v-if="newClientModalOpen" class="modal-backdrop">
+          <div class="modal-card">
+            <div class="modal-header">
+              <h3>Register New Client Application</h3>
+              <button class="close-btn" type="button" @click="newClientModalOpen = false; generatedSecret = ''">✕</button>
+            </div>
+
+            <div v-if="generatedSecret" class="secret-alert">
+              <p class="font-bold">⚠️ Copy this Client Secret immediately:</p>
+              <code class="secret-box">{{ generatedSecret }}</code>
+              <p class="secret-hint">It will NEVER be shown again!</p>
+              <button class="primary-btn mt-4" type="button" @click="newClientModalOpen = false; generatedSecret = ''">Done</button>
+            </div>
+
+            <form v-else class="modal-form" @submit.prevent="handleCreateClient">
+              <div v-if="createError" class="error-banner">{{ createError }}</div>
+
+              <label class="modal-field">
+                <span>Application Name</span>
+                <input v-model="newClientName" placeholder="e.g. My Dashboard" required />
+              </label>
+
+              <label class="modal-field">
+                <span>Service URL</span>
+                <input v-model="newClientServiceUrl" type="url" placeholder="https://app.example.com" required />
+              </label>
+
+              <label class="modal-field">
+                <span>Redirect URIs (one per line)</span>
+                <textarea v-model="newClientRedirectUri" rows="3" placeholder="https://app.example.com/oidc/callback" required></textarea>
+              </label>
+
+              <div class="modal-actions">
+                <button class="secondary-btn" type="button" @click="newClientModalOpen = false">Cancel</button>
+                <button class="primary-btn" type="submit">Create & Generate Keys</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </section>
     </main>
   </div>
 </template>
@@ -274,10 +461,297 @@ const mobileNavigationOpen = ref(false)
 }
 
 .workspace-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   min-height: 120px;
   padding: 28px 36px 22px;
   border-bottom: 1px solid #e9ebf2;
   background: #fff;
+}
+
+.primary-btn {
+  padding: 10px 18px;
+  border: 0;
+  border-radius: 6px;
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 150ms ease;
+}
+
+.primary-btn:hover {
+  opacity: 0.9;
+}
+
+.secondary-btn {
+  padding: 10px 18px;
+  border: 1px solid #dfe3ed;
+  border-radius: 6px;
+  background: #fff;
+  color: #59657b;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.stat-card {
+  padding: 20px;
+  border-radius: 8px;
+  background: #fff;
+  border: 1px solid #e9ebf2;
+  display: grid;
+  gap: 6px;
+}
+
+.stat-label {
+  color: #8993a5;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.stat-value {
+  color: var(--color-ink);
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.content-card {
+  border-radius: 8px;
+  background: #fff;
+  border: 1px solid #e9ebf2;
+  overflow: hidden;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e9ebf2;
+}
+
+.card-header h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 650;
+}
+
+.refresh-btn {
+  background: transparent;
+  border: 1px solid #dfe3ed;
+  border-radius: 4px;
+  padding: 6px 12px;
+  font-size: 12px;
+  color: #59657b;
+  cursor: pointer;
+}
+
+.state-msg {
+  padding: 32px;
+  text-align: center;
+  color: #8993a5;
+  font-size: 13px;
+}
+
+.clients-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  text-align: left;
+}
+
+.clients-table th {
+  padding: 12px 24px;
+  background: #fafbfe;
+  color: #8993a5;
+  font-weight: 650;
+  font-size: 11px;
+  text-transform: uppercase;
+  border-bottom: 1px solid #e9ebf2;
+}
+
+.clients-table td {
+  padding: 14px 24px;
+  border-bottom: 1px solid #f0f2f7;
+  color: #303b50;
+}
+
+.client-id-code {
+  font-family: monospace;
+  background: #f4f5f9;
+  padding: 3px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+}
+
+.link {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.badge {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.badge-success {
+  background: #ecfdf5;
+  color: #059669;
+}
+
+.badge-warning {
+  background: #fffbeb;
+  color: #d97706;
+}
+
+.status-dot {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.dot-active::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #10b981;
+}
+
+.dot-inactive::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #9ca3af;
+}
+
+/* Modal */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.modal-card {
+  width: 100%;
+  max-width: 480px;
+  background: #fff;
+  border-radius: 8px;
+  padding: 24px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 17px;
+}
+
+.close-btn {
+  background: none;
+  border: 0;
+  font-size: 16px;
+  cursor: pointer;
+  color: #8993a5;
+}
+
+.modal-form {
+  display: grid;
+  gap: 16px;
+}
+
+.modal-field {
+  display: grid;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #36425a;
+}
+
+.modal-field input,
+.modal-field textarea {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #dfe3ed;
+  border-radius: 6px;
+  font-size: 13px;
+  outline: none;
+}
+
+.modal-field textarea {
+  resize: vertical;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.secret-alert {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 6px;
+  padding: 16px;
+  display: grid;
+  gap: 8px;
+}
+
+.secret-box {
+  background: #fff;
+  padding: 8px 12px;
+  border: 1px solid #fcd34d;
+  border-radius: 4px;
+  word-break: break-all;
+  font-size: 12px;
+  color: #b45309;
+}
+
+.secret-hint {
+  font-size: 11px;
+  color: #92400e;
+  margin: 0;
+}
+
+.mt-4 {
+  margin-top: 12px;
+}
+
+.error-banner {
+  padding: 8px 12px;
+  background: #fef2f2;
+  border: 1px solid #fee2e2;
+  color: #b91c1c;
+  font-size: 12px;
+  border-radius: 4px;
 }
 
 .breadcrumb {

@@ -8,12 +8,18 @@ withDefaults(
     name: string
     placeholder: string
     autocomplete: string
-    type?: 'email' | 'password'
+    type?: 'email' | 'password' | 'text'
+    modelValue?: string
   }>(),
   {
     type: 'email',
+    modelValue: '',
   },
 )
+
+defineEmits<{
+  'update:modelValue': [value: string]
+}>()
 
 const passwordVisible = ref(false)
 </script>
@@ -28,7 +34,9 @@ const passwordVisible = ref(false)
         :name="name"
         :placeholder="placeholder"
         :autocomplete="autocomplete"
+        :value="modelValue"
         required
+        @input="$emit('update:modelValue', ($event.target as HTMLInputElement).value)"
       />
       <button
         class="visibility-toggle"
@@ -46,7 +54,9 @@ const passwordVisible = ref(false)
       :name="name"
       :placeholder="placeholder"
       :autocomplete="autocomplete"
+      :value="modelValue"
       required
+      @input="$emit('update:modelValue', ($event.target as HTMLInputElement).value)"
     />
   </label>
 </template>
