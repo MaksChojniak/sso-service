@@ -1,7 +1,8 @@
 from django.core.paginator import Paginator
 from django.http import JsonResponse
+from django.utils import timezone
 from django.views.decorators.csrf import csrf_protect
-from django.views.decorators.http import require_http_methods, require_POST
+from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
 from models.clients import ClientApplication
 from services.crypto import (
@@ -135,3 +136,82 @@ def deactivate_client(request, client_id):
     client.is_active = False
     client.save(update_fields=['is_active', 'updated_at'])
     return JsonResponse({'status': 'deactivated', 'client_id': str(client.client_id)})
+
+
+@csrf_protect
+@require_POST
+def rotate_client_secret(request, client_id):
+    """Regenerate and return a new client_secret for the application."""
+    access_error = staff_access_error(request)
+    if access_error:
+        return access_error
+
+    client = ClientApplication.objects.filter(client_id=client_id).first()
+    if client is None:
+        return error('Client application not found.', 404)
+
+    new_secret = generate_client_secret()
+    client.client_secret_hash = hash_client_secret(new_secret)
+    client.save(update_fields=['client_secret_hash', 'updated_at'])
+
+    return JsonResponse({
+        'status': 'secret_rotated',
+        'client_id': str(client.client_id),
+        'client_secret': new_secret,
+    })
+
+
+@csrf_protect
+@require_POST
+def rotate_client_keys(request, client_id):
+    """Regenerate RSA signing keypair and self-signed certificate."""
+    access_error = staff_access_error(request)
+    if access_error:
+        return access_error
+
+    client = ClientApplication.objects.filter(client_id=client_id).first()
+    if client is None:
+        return error('Client application not found.', 404)
+
+    new_key = generate_rsa_keypair()
+    client.signing_key_pem = private_key_to_pem(new_key)
+    client.signing_cert_pem = generate_self_signed_cert(new_key, client.name)
+    client.save(update_fields=['signing_key_pem', 'signing_cert_pem', 'updated_at'])
+
+    return JsonResponse({
+        'status': 'keys_rotated',
+        'client_id': str(client.client_id),
+        'signing_cert_pem': client.signing_cert_pem,
+    })
+
+
+@require_GET
+def overview_stats(request):
+    """Provide dashboard metrics for Admin Overview panel."""
+    access_error = staff_access_error(request)
+    if access_error:
+        return access_error
+
+    from django.contrib.auth import get_user_model
+    from models.tokens import AccessToken, AuthorizationCode
+    User = get_user_model()
+
+    now = timezone.now()
+    total_clients = ClientApplication.objects.count()
+    active_clients = ClientApplication.objects.filter(is_active=True).count()
+    total_users = User.objects.count()
+    active_tokens = AccessToken.objects.filter(revoked=False, expires_at__gt=now).count()
+
+    recent_clients = [
+        client_json(c) for c in ClientApplication.objects.order_by('-created_at')[:5]
+    ]
+
+    return JsonResponse({
+        'stats': {
+            'total_clients': total_clients,
+            'active_clients': active_clients,
+            'total_users': total_users,
+            'active_tokens': active_tokens,
+        },
+        'recent_clients': recent_clients,
+    })

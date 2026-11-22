@@ -117,3 +117,36 @@ class ClientApplicationApiTests(TestCase):
 		self.assertEqual(deleted.status_code, 200)
 		client.refresh_from_db()
 		self.assertFalse(client.is_active)
+
+	def test_rotate_secret_and_keys(self):
+		self.client.force_login(self.staff_user)
+		client = self.create_client_in_db()
+		old_hash = client.client_secret_hash
+		old_cert = client.signing_cert_pem
+
+		# Rotate secret
+		rot_sec = self.client.post(reverse('client-rotate-secret', args=[client.client_id]))
+		self.assertEqual(rot_sec.status_code, 200)
+		new_plain_secret = rot_sec.json()['client_secret']
+		client.refresh_from_db()
+		self.assertNotEqual(client.client_secret_hash, old_hash)
+		self.assertTrue(verify_client_secret(new_plain_secret, client.client_secret_hash))
+
+		# Rotate keys
+		rot_keys = self.client.post(reverse('client-rotate-keys', args=[client.client_id]))
+		self.assertEqual(rot_keys.status_code, 200)
+		client.refresh_from_db()
+		self.assertNotEqual(client.signing_cert_pem, old_cert)
+		self.assertIn('BEGIN CERTIFICATE', client.signing_cert_pem)
+
+	def test_overview_stats(self):
+		self.client.force_login(self.staff_user)
+		self.create_client_in_db()
+
+		res = self.client.get(reverse('admin-overview-stats'))
+		self.assertEqual(res.status_code, 200)
+		stats = res.json()['stats']
+		self.assertGreaterEqual(stats['total_clients'], 1)
+		self.assertGreaterEqual(stats['active_clients'], 1)
+		self.assertIn('recent_clients', res.json())
+
