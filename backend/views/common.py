@@ -38,6 +38,8 @@ def client_json(client):
         'service_url': client.service_url,
         'redirect_uris': client.redirect_uris,
         'is_active': client.is_active,
+        'has_signing_key': bool(client.signing_key_pem),
+        'signing_cert_pem': client.signing_cert_pem,
         'created_at': client.created_at.isoformat(),
         'updated_at': client.updated_at.isoformat(),
     }

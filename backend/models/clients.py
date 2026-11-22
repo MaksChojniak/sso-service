@@ -8,6 +8,12 @@ class ClientApplication(models.Model):
     name = models.CharField(max_length=100)
     service_url = models.URLField(max_length=500)
     redirect_uris = models.JSONField(default=list)
+
+    # Credentials — set at creation, never exposed in API responses.
+    client_secret_hash = models.CharField(max_length=256)
+    signing_key_pem = models.TextField()
+    signing_cert_pem = models.TextField()
+
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

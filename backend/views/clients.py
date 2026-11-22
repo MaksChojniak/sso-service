@@ -4,6 +4,10 @@ from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.http import require_http_methods, require_POST
 
 from models.clients import ClientApplication
+from services.crypto import (
+    generate_client_secret, generate_rsa_keypair, generate_self_signed_cert,
+    hash_client_secret, private_key_to_pem,
+)
 from validators.clients import ClientApplicationCreateForm, ClientApplicationUpdateForm
 from .common import client_json, error, form_errors, request_data, staff_access_error
 
@@ -63,8 +67,20 @@ def create_client(request):
         }, status=400)
     if not form.is_valid():
         return form_errors(form)
-    client = ClientApplication.objects.create(**form.cleaned_data)
-    return JsonResponse({'client': client_json(client)}, status=201)
+
+    plain_secret = generate_client_secret()
+    private_key = generate_rsa_keypair()
+    client = ClientApplication.objects.create(
+        **form.cleaned_data,
+        client_secret_hash=hash_client_secret(plain_secret),
+        signing_key_pem=private_key_to_pem(private_key),
+        signing_cert_pem=generate_self_signed_cert(
+            private_key, form.cleaned_data['name'],
+        ),
+    )
+    data = client_json(client)
+    data['client_secret'] = plain_secret
+    return JsonResponse({'client': data}, status=201)
 
 
 @require_http_methods(['GET'])
