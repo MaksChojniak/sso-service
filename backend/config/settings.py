@@ -150,3 +150,16 @@ CSRF_COOKIE_HTTPONLY = False  # Allows frontend SPA to read token from cookie if
 SESSION_COOKIE_SAMESITE = 'Lax'
 CSRF_COOKIE_SAMESITE = 'Lax'
 
+# Trusted origins for CSRF (supports both http dev and https prod)
+csrf_trusted = os.environ.get('DJANGO_CSRF_TRUSTED_ORIGINS', '')
+if csrf_trusted:
+    CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in csrf_trusted.split(',') if origin.strip()]
+else:
+    CSRF_TRUSTED_ORIGINS = [
+        'http://localhost',
+        'http://127.0.0.1',
+        'http://localhost:5173',
+        'http://localhost:80',
+    ]
+
+
