@@ -85,3 +85,23 @@ class AuthViewsTests(TestCase):
         admin_res = self.post_json(admin_login_url, {'email': 'admin@example.com', 'password': 'AdminPassword123!'})
         self.assertEqual(admin_res.status_code, 200)
         self.assertEqual(admin_res.json()['status'], 'authenticated')
+
+    def test_rate_limiting_on_login(self):
+        from django.core.cache import cache
+        cache.clear()
+
+        login_url = reverse('auth-login')
+        payload = {'email': 'rate@example.com', 'password': 'invalid'}
+
+        # Execute requests up to limit (10 allowed)
+        for _ in range(10):
+            res = self.post_json(login_url, payload)
+            self.assertEqual(res.status_code, 400)
+
+        # 11th request triggers rate limit (429)
+        res = self.post_json(login_url, payload)
+        self.assertEqual(res.status_code, 429)
+        self.assertEqual(res.json()['error'], 'too_many_requests')
+        cache.clear()
+
+
