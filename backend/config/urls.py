@@ -27,6 +27,7 @@ urlpatterns = [
     path('api/v1/auth/', include('urls.auth')),
     path('api/v1/admin/login', admin_login_view, name='admin-auth-login'),
     path('api/v1/admin/clients/', include('urls.clients')),
+    path('api/v1/admin/database/', include('urls.database')),
 ]
 
 

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { apiRequest } from '@/shared/api/client'
 
@@ -23,6 +23,19 @@ interface ClientApp {
   created_at: string
 }
 
+interface DatabaseModelSummary {
+  key: string
+  label: string
+  count: number
+}
+
+interface DatabaseColumn {
+  key: string
+  label: string
+}
+
+const activeSection = ref<'overview' | 'database'>('overview')
+
 const stats = ref<Stats>({
   total_clients: 0,
   active_clients: 0,
@@ -39,14 +52,87 @@ const newClientRedirectUri = ref('')
 const createError = ref('')
 const generatedSecret = ref('')
 
+const databaseModels = ref<DatabaseModelSummary[]>([])
+const selectedModelKey = ref('')
+const selectedModelLabel = ref('')
+const tableColumns = ref<DatabaseColumn[]>([])
+const tableRows = ref<Record<string, unknown>[]>([])
+const tableTotalCount = ref(0)
+const isTableLoading = ref(false)
+const tableError = ref('')
+const tableSearch = ref('')
+
+const filteredRows = computed(() => {
+  const query = tableSearch.value.trim().toLowerCase()
+  if (!query) return tableRows.value
+  return tableRows.value.filter((row) =>
+    Object.values(row).some((val) => String(val ?? '').toLowerCase().includes(query)),
+  )
+})
+
+function handleAuthFailure(status: number) {
+  if (status === 401 || status === 403) {
+    void router.replace('/not-allowed')
+    return true
+  }
+  return false
+}
+
 async function fetchDashboard() {
   isLoading.value = true
-  const { data, error } = await apiRequest('/api/v1/admin/clients/stats/overview')
+  const { data, status } = await apiRequest('/api/v1/admin/clients/stats/overview')
+  if (handleAuthFailure(status)) return
   if (data?.stats) {
     stats.value = data.stats
     clients.value = data.recent_clients || []
   }
   isLoading.value = false
+}
+
+async function fetchDatabaseModels() {
+  const { data, status } = await apiRequest('/api/v1/admin/database/models')
+  if (handleAuthFailure(status)) return
+  if (Array.isArray(data?.models)) {
+    databaseModels.value = data.models
+  }
+}
+
+async function fetchDatabaseTable(modelKey: string) {
+  isTableLoading.value = true
+  tableError.value = ''
+  const { data, error, status } = await apiRequest(`/api/v1/admin/database/models/${encodeURIComponent(modelKey)}`)
+  if (handleAuthFailure(status)) return
+  if (error) {
+    tableError.value = error
+    tableColumns.value = []
+    tableRows.value = []
+    tableTotalCount.value = 0
+  } else if (data) {
+    selectedModelLabel.value = data.model?.label || modelKey
+    tableColumns.value = data.columns || []
+    tableRows.value = data.rows || []
+    tableTotalCount.value = data.total_count ?? 0
+  }
+  isTableLoading.value = false
+}
+
+function selectOverview() {
+  activeSection.value = 'overview'
+  mobileNavigationOpen.value = false
+}
+
+function selectDatabaseModel(modelKey: string) {
+  activeSection.value = 'database'
+  selectedModelKey.value = modelKey
+  tableSearch.value = ''
+  mobileNavigationOpen.value = false
+  void fetchDatabaseTable(modelKey)
+}
+
+function formatCellValue(value: unknown): string {
+  if (value === null || value === undefined || value === '') return '—'
+  if (typeof value === 'boolean') return value ? 'Yes' : 'No'
+  return String(value)
 }
 
 async function handleCreateClient() {
@@ -58,7 +144,7 @@ async function handleCreateClient() {
     .map(u => u.trim())
     .filter(Boolean)
 
-  const { data, error } = await apiRequest('/api/v1/admin/clients/', {
+  const { data, error, status } = await apiRequest('/api/v1/admin/clients/', {
     method: 'POST',
     body: JSON.stringify({
       name: newClientName.value,
@@ -66,6 +152,7 @@ async function handleCreateClient() {
       redirect_uris: redirectUris,
     }),
   })
+  if (handleAuthFailure(status)) return
 
   if (error) {
     createError.value = error
@@ -78,6 +165,7 @@ async function handleCreateClient() {
     newClientServiceUrl.value = ''
     newClientRedirectUri.value = ''
     void fetchDashboard()
+    void fetchDatabaseModels()
   }
 }
 
@@ -88,6 +176,7 @@ async function handleSignOut() {
 
 onMounted(() => {
   void fetchDashboard()
+  void fetchDatabaseModels()
 })
 </script>
 
@@ -144,11 +233,11 @@ onMounted(() => {
 
         <div class="sidebar-section-label">WORKSPACE</div>
         <nav class="navigation" aria-label="Workspace navigation">
-          <RouterLink
-            class="nav-link"
-            to="/admin"
-            aria-current="page"
-            @click="mobileNavigationOpen = false"
+          <button
+            class="nav-link nav-btn"
+            type="button"
+            :aria-current="activeSection === 'overview' ? 'page' : undefined"
+            @click="selectOverview"
           >
             <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
               <rect x="3" y="3" width="5" height="5" rx="1" />
@@ -157,7 +246,27 @@ onMounted(() => {
               <rect x="12" y="12" width="5" height="5" rx="1" />
             </svg>
             <span>Overview</span>
-          </RouterLink>
+          </button>
+        </nav>
+
+        <div class="sidebar-section-label sidebar-section-label--spaced">DATABASE</div>
+        <nav class="navigation" aria-label="Database tables navigation">
+          <button
+            v-for="model in databaseModels"
+            :key="model.key"
+            class="nav-link nav-btn"
+            type="button"
+            :aria-current="activeSection === 'database' && selectedModelKey === model.key ? 'page' : undefined"
+            @click="selectDatabaseModel(model.key)"
+          >
+            <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+              <ellipse cx="10" cy="5" rx="6" ry="2.2" />
+              <path d="M4 5v5c0 1.2 2.7 2.2 6 2.2s6-1 6-2.2V5" />
+              <path d="M4 10v5c0 1.2 2.7 2.2 6 2.2s6-1 6-2.2v-5" />
+            </svg>
+            <span class="nav-label">{{ model.label }}</span>
+            <span class="nav-count">{{ model.count }}</span>
+          </button>
         </nav>
 
         <div class="sidebar-bottom">
@@ -174,15 +283,29 @@ onMounted(() => {
     <main class="workspace">
       <header class="workspace-header">
         <div class="header-titles">
-          <p class="breadcrumb">Workspace <span>/</span> Overview</p>
-          <h1>Overview</h1>
+          <p v-if="activeSection === 'overview'" class="breadcrumb">Workspace <span>/</span> Overview</p>
+          <p v-else class="breadcrumb">Database <span>/</span> {{ selectedModelLabel || selectedModelKey }}</p>
+          <h1>{{ activeSection === 'overview' ? 'Overview' : (selectedModelLabel || selectedModelKey) }}</h1>
         </div>
-        <button class="primary-btn" type="button" @click="newClientModalOpen = true">
+        <button
+          v-if="activeSection === 'overview'"
+          class="primary-btn"
+          type="button"
+          @click="newClientModalOpen = true"
+        >
           + Add Client Application
+        </button>
+        <button
+          v-else
+          class="secondary-btn"
+          type="button"
+          @click="fetchDatabaseTable(selectedModelKey); fetchDatabaseModels()"
+        >
+          Refresh Table
         </button>
       </header>
 
-      <section class="workspace-content" aria-label="Workspace content">
+      <section v-if="activeSection === 'overview'" class="workspace-content" aria-label="Workspace content">
         <!-- Stats cards -->
         <div class="stats-grid">
           <div class="stat-card">
@@ -279,6 +402,58 @@ onMounted(() => {
           </div>
         </div>
       </section>
+
+      <section v-else class="workspace-content" aria-label="Database table preview">
+        <div class="content-card">
+          <div class="card-header card-header--wrap">
+            <div class="table-title-group">
+              <h2>{{ selectedModelLabel || selectedModelKey }}</h2>
+              <span class="row-count-pill">{{ tableTotalCount }} rows</span>
+            </div>
+            <div class="table-toolbar">
+              <input
+                v-model="tableSearch"
+                class="table-search-input"
+                type="search"
+                placeholder="Filter loaded rows..."
+                aria-label="Filter table rows"
+              />
+            </div>
+          </div>
+
+          <div v-if="isTableLoading" class="state-msg">Loading table data...</div>
+          <div v-else-if="tableError" class="state-msg error-text">{{ tableError }}</div>
+          <div v-else-if="filteredRows.length === 0" class="state-msg">
+            No records found in {{ selectedModelLabel || selectedModelKey }}.
+          </div>
+          <div v-else class="table-scroll">
+            <table class="clients-table">
+              <thead>
+                <tr>
+                  <th v-for="col in tableColumns" :key="col.key">{{ col.label }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(row, rowIdx) in filteredRows" :key="String(row.id ?? rowIdx)">
+                  <td v-for="col in tableColumns" :key="col.key">
+                    <span
+                      v-if="typeof row[col.key] === 'boolean'"
+                      class="badge"
+                      :class="row[col.key] ? 'badge-success' : 'badge-warning'"
+                    >
+                      {{ row[col.key] ? 'True' : 'False' }}
+                    </span>
+                    <code v-else-if="col.key === 'id' || col.key === 'client_id' || col.key === 'code' || col.key === 'token'" class="client-id-code">
+                      {{ formatCellValue(row[col.key]) }}
+                    </code>
+                    <span v-else class="cell-value">{{ formatCellValue(row[col.key]) }}</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
     </main>
   </div>
 </template>
@@ -348,9 +523,43 @@ onMounted(() => {
   letter-spacing: 1.15px;
 }
 
+.sidebar-section-label--spaced {
+  margin-top: 22px;
+}
+
 .navigation {
   display: grid;
   gap: 4px;
+}
+
+.nav-btn {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.nav-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nav-count {
+  padding: 2px 7px;
+  border-radius: 10px;
+  background: #f0f2f7;
+  color: #6b768c;
+  font-size: 10px;
+  font-weight: 650;
+}
+
+.nav-link[aria-current='page'] .nav-count {
+  background: #e0e3ff;
+  color: var(--color-primary-dark);
 }
 
 .sidebar-content {
@@ -539,6 +748,65 @@ onMounted(() => {
   justify-content: space-between;
   padding: 20px 24px;
   border-bottom: 1px solid #e9ebf2;
+}
+
+.card-header--wrap {
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.table-title-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.row-count-pill {
+  padding: 3px 9px;
+  border-radius: 12px;
+  background: #f0f1ff;
+  color: var(--color-primary-dark);
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.table-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.table-search-input {
+  width: 220px;
+  max-width: 100%;
+  padding: 7px 11px;
+  border: 1px solid #dfe3ed;
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--color-ink);
+  outline: none;
+}
+
+.table-search-input:focus {
+  border-color: var(--color-primary);
+}
+
+.table-scroll {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.cell-value {
+  display: inline-block;
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+}
+
+.error-text {
+  color: #b91c1c;
 }
 
 .card-header h2 {

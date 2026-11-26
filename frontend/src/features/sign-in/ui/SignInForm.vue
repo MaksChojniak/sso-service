@@ -35,7 +35,7 @@ async function handleSignIn() {
     return
   }
 
-  void router.push('/admin')
+  void router.push('/home')
 }
 </script>
 
