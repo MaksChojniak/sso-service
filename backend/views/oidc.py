@@ -144,7 +144,7 @@ def token(request):
     except (ClientApplication.DoesNotExist, ValueError):
         return JsonResponse({'error': 'invalid_client', 'error_description': 'Unknown client'}, status=401)
 
-    if client_secret and not verify_client_secret(client_secret, client.client_secret_hash):
+    if not client_secret or not verify_client_secret(client_secret, client.client_secret_hash):
         return JsonResponse({'error': 'invalid_client', 'error_description': 'Invalid client_secret'}, status=401)
 
     issuer = get_issuer(request)
@@ -254,8 +254,6 @@ def userinfo(request):
     token_str = None
     if auth_header.startswith('Bearer '):
         token_str = auth_header[7:].strip()
-    elif 'access_token' in request.GET:
-        token_str = request.GET.get('access_token')
 
     if not token_str:
         return JsonResponse({'error': 'invalid_token', 'error_description': 'Missing access token'}, status=401)

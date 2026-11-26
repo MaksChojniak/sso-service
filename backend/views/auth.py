@@ -1,6 +1,6 @@
 from django.contrib.auth import get_user_model, login, logout
 from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
+from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_GET, require_POST
 
 from validators.auth import AdminLoginForm, LoginForm, RegisterForm
@@ -24,7 +24,6 @@ def user_json(user):
     }
 
 
-@csrf_exempt
 @require_POST
 def register_view(request):
     """POST /api/v1/auth/register"""
@@ -49,7 +48,6 @@ def register_view(request):
     return JsonResponse({'user': user_json(user)}, status=201)
 
 
-@csrf_exempt
 @require_POST
 def login_view(request):
     """POST /api/v1/auth/login"""
@@ -66,7 +64,6 @@ def login_view(request):
     return JsonResponse({'user': user_json(user), 'status': 'authenticated'})
 
 
-@csrf_exempt
 @require_POST
 def admin_login_view(request):
     """POST /api/v1/admin/login"""
@@ -83,7 +80,6 @@ def admin_login_view(request):
     return JsonResponse({'user': user_json(user), 'status': 'authenticated'})
 
 
-@csrf_exempt
 @require_POST
 def logout_view(request):
     """POST /api/v1/auth/logout"""

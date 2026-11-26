@@ -1,3 +1,4 @@
+import os
 import time
 from django.core.cache import cache
 from django.http import JsonResponse
@@ -44,9 +45,13 @@ class SimpleRateLimitMiddleware:
         return self.get_response(request)
 
     def _get_client_ip(self, request):
+        remote_addr = request.META.get('REMOTE_ADDR', '')
+        trusted_proxies = {
+            ip.strip()
+            for ip in os.environ.get('TRUSTED_PROXY_IPS', '127.0.0.1,::1').split(',')
+            if ip.strip()
+        }
         x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
-        if x_forwarded_for:
-            ip = x_forwarded_for.split(',')[0].strip()
-        else:
-            ip = request.META.get('REMOTE_ADDR', '')
-        return ip
+        if x_forwarded_for and remote_addr in trusted_proxies:
+            return x_forwarded_for.split(',')[0].strip()
+        return remote_addr

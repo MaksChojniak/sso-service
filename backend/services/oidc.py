@@ -1,5 +1,6 @@
 import base64
 import hashlib
+import hmac
 import time
 import jwt
 from django.conf import settings
@@ -16,9 +17,9 @@ def verify_pkce(code_verifier: str, code_challenge: str, method: str) -> bool:
     if method == 'S256':
         digest = hashlib.sha256(code_verifier.encode('ascii')).digest()
         computed = base64.urlsafe_b64encode(digest).rstrip(b'=').decode('ascii')
-        return computed == code_challenge
+        return hmac.compare_digest(computed, code_challenge)
     elif method == 'plain' or not method:
-        return code_verifier == code_challenge
+        return hmac.compare_digest(code_verifier, code_challenge)
     return False
 
 
