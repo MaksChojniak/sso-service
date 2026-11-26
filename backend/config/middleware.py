@@ -53,5 +53,10 @@ class SimpleRateLimitMiddleware:
         }
         x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
         if x_forwarded_for and remote_addr in trusted_proxies:
-            return x_forwarded_for.split(',')[0].strip()
+            ips = [ip.strip() for ip in x_forwarded_for.split(',') if ip.strip()]
+            for ip in reversed(ips):
+                if ip not in trusted_proxies:
+                    return ip
+            if ips:
+                return ips[-1]
         return remote_addr

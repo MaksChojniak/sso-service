@@ -30,7 +30,7 @@ async function handleSignIn() {
   // Check if next redirect exists in URL query (e.g. from OIDC authorize flow)
   const urlParams = new URLSearchParams(window.location.search)
   const next = urlParams.get('next')
-  if (next) {
+  if (next && next.startsWith('/') && !next.startsWith('//') && !next.startsWith('/\\')) {
     window.location.href = next
     return
   }

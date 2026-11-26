@@ -168,7 +168,7 @@ def token(request):
         if auth_code.is_expired:
             return JsonResponse({'error': 'invalid_grant', 'error_description': 'Authorization code expired'}, status=400)
 
-        if redirect_uri and auth_code.redirect_uri != redirect_uri:
+        if not redirect_uri or auth_code.redirect_uri != redirect_uri:
             return JsonResponse({'error': 'invalid_grant', 'error_description': 'Redirect URI mismatch'}, status=400)
 
         # Check PKCE if required
@@ -176,9 +176,10 @@ def token(request):
             if not verify_pkce(code_verifier, auth_code.code_challenge, auth_code.code_challenge_method):
                 return JsonResponse({'error': 'invalid_grant', 'error_description': 'PKCE verification failed'}, status=400)
 
-        # Mark code as used
-        auth_code.is_used = True
-        auth_code.save(update_fields=['is_used'])
+        # Atomically mark code as used to prevent concurrent reuse
+        updated = AuthorizationCode.objects.filter(pk=auth_code.pk, is_used=False).update(is_used=True)
+        if not updated:
+            return JsonResponse({'error': 'invalid_grant', 'error_description': 'Authorization code already used'}, status=400)
 
         access_token = AccessToken.objects.create(
             client=client,
@@ -220,7 +221,7 @@ def token(request):
         except RefreshToken.DoesNotExist:
             return JsonResponse({'error': 'invalid_grant', 'error_description': 'Invalid refresh token'}, status=400)
 
-        if rt.revoked or rt.is_expired:
+        if rt.revoked or rt.is_expired or not rt.user.is_active:
             return JsonResponse({'error': 'invalid_grant', 'error_description': 'Refresh token expired or revoked'}, status=400)
 
         new_access_token = AccessToken.objects.create(
@@ -263,7 +264,7 @@ def userinfo(request):
     except AccessToken.DoesNotExist:
         return JsonResponse({'error': 'invalid_token', 'error_description': 'Invalid access token'}, status=401)
 
-    if at.revoked or at.is_expired:
+    if at.revoked or at.is_expired or not at.user.is_active:
         return JsonResponse({'error': 'invalid_token', 'error_description': 'Access token expired or revoked'}, status=401)
 
     claims = get_user_claims(at.user, scope=at.scope)
